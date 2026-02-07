@@ -255,6 +255,8 @@ async def run_digest(request: Request, x_cron_secret: str = Header(None)):
     if x_cron_secret != CRON_SECRET:
         return JSONResponse({"error": "Invalid or missing X-Cron-Secret"}, status_code=401)
 
+    hours = int(request.query_params.get("hours", 24))
+
     users = get_all_users_with_tokens()
     if not users:
         return JSONResponse({"status": "ok", "message": "No users with OAuth tokens found", "results": []})
@@ -265,7 +267,7 @@ async def run_digest(request: Request, x_cron_secret: str = Header(None)):
     for user_email in users:
         try:
             logger.info("Running digest pipeline for %s", user_email)
-            run_pipeline(dry_run=False, hours=24, force=False, user=user_email)
+            run_pipeline(dry_run=False, hours=hours, force=False, user=user_email)
             results.append({"user": user_email, "status": "success"})
         except Exception as e:
             logger.error("Digest pipeline failed for %s: %s", user_email, e)

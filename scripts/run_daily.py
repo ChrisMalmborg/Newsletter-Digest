@@ -49,7 +49,7 @@ from src.ingestion.parser import extract_forwarded_sender
 from src.processing.summarizer import summarize_email
 from src.processing.clusterer import cluster_summaries
 from src.delivery.digest_builder import build_digest
-from src.delivery.email_sender import send_digest
+from src.delivery.email_sender import send_digest, send_digest_gmail_api
 
 logger = logging.getLogger(__name__)
 
@@ -417,7 +417,7 @@ def run(dry_run=False, hours=24, force=False, user=None):
             f.write(digest["text"])
         logger.info("Dry run — plain text saved to %s", text_path)
     else:
-        to_addr = DIGEST_TO_ADDRESS
+        to_addr = user or DIGEST_TO_ADDRESS
         if not to_addr:
             logger.error(
                 "DIGEST_TO_ADDRESS not set in .env — "
@@ -430,12 +430,24 @@ def run(dry_run=False, hours=24, force=False, user=None):
             logger.info("Digest saved to %s (sending skipped)", output_path)
             return
 
-        logger.info("Sending digest to %s...", to_addr)
-        sent = send_digest(digest["html"], digest["text"], digest["subject"], to_addr)
+        # Use Gmail API for OAuth users, fall back to SMTP for legacy IMAP users
+        if user:
+            logger.info("Sending digest to %s via Gmail API...", to_addr)
+            sent = send_digest_gmail_api(
+                user_email=user,
+                to_address=to_addr,
+                subject=digest["subject"],
+                html_content=digest["html"],
+                text_content=digest["text"],
+            )
+        else:
+            logger.info("Sending digest to %s via SMTP...", to_addr)
+            sent = send_digest(digest["html"], digest["text"], digest["subject"], to_addr)
+
         if sent:
             logger.info("Digest sent successfully!")
         else:
-            logger.error("Failed to send digest — check SMTP settings")
+            logger.error("Failed to send digest")
             # Save locally as fallback
             output_path = DATA_DIR / "digest_{}.html".format(today.isoformat())
             with open(output_path, "w") as f:

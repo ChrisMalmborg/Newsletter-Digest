@@ -92,3 +92,18 @@ def get_user_id_by_email(user_email: str) -> Optional[int]:
     conn.close()
 
     return row["id"] if row else None
+
+
+def get_all_users_with_tokens() -> list[str]:
+    """Return email addresses of all users who have stored OAuth tokens."""
+    _ensure_users_table()
+    conn = _get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT email FROM users WHERE oauth_tokens IS NOT NULL AND oauth_tokens != '{}'"
+    )
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [row["email"] for row in rows]

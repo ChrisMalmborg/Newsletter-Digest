@@ -42,3 +42,6 @@ GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/au
 
 # Web app
 SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "change-me-in-production")
+
+# Cron / scheduled jobs
+CRON_SECRET = os.getenv("CRON_SECRET", "")

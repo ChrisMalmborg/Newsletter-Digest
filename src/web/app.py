@@ -1,13 +1,15 @@
+import importlib.util
+import logging
 from pathlib import Path
 from typing import List
 from urllib.parse import quote
 
-from fastapi import FastAPI, Request, Form
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import FastAPI, Request, Form, Header
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 from jinja2 import Environment, FileSystemLoader
 
-from src.config import SESSION_SECRET_KEY, GOOGLE_CLIENT_ID
+from src.config import SESSION_SECRET_KEY, GOOGLE_CLIENT_ID, CRON_SECRET, PROJECT_ROOT
 from src.database import (
     add_subscription,
     deactivate_subscription,
@@ -24,7 +26,9 @@ from src.web.gmail_client import (
     detect_newsletters,
     get_user_email,
 )
-from src.web.token_storage import save_user_tokens, get_user_id_by_email
+from src.web.token_storage import save_user_tokens, get_user_id_by_email, get_all_users_with_tokens
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Newsletter Digest")
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
@@ -218,6 +222,65 @@ async def save_settings(request: Request):
 
     msg = quote("Settings saved!")
     return RedirectResponse("/dashboard/settings?success={}".format(msg), status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Scheduled job API
+# ---------------------------------------------------------------------------
+
+
+def _load_run_daily():
+    """Lazily import the run() function from scripts/run_daily.py."""
+    spec = importlib.util.spec_from_file_location(
+        "run_daily", str(PROJECT_ROOT / "scripts" / "run_daily.py")
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.run
+
+
+@app.post("/api/run-digest")
+async def run_digest(request: Request, x_cron_secret: str = Header(None)):
+    """Trigger the digest pipeline for all users with stored OAuth tokens.
+
+    Protected by a shared secret passed in the ``X-Cron-Secret`` header.
+    Intended to be called by Railway cron or an equivalent scheduler.
+    """
+    if not CRON_SECRET:
+        return JSONResponse(
+            {"error": "CRON_SECRET is not configured on the server"},
+            status_code=500,
+        )
+
+    if x_cron_secret != CRON_SECRET:
+        return JSONResponse({"error": "Invalid or missing X-Cron-Secret"}, status_code=401)
+
+    users = get_all_users_with_tokens()
+    if not users:
+        return JSONResponse({"status": "ok", "message": "No users with OAuth tokens found", "results": []})
+
+    run_pipeline = _load_run_daily()
+
+    results = []
+    for user_email in users:
+        try:
+            logger.info("Running digest pipeline for %s", user_email)
+            run_pipeline(dry_run=False, hours=24, force=False, user=user_email)
+            results.append({"user": user_email, "status": "success"})
+        except Exception as e:
+            logger.error("Digest pipeline failed for %s: %s", user_email, e)
+            results.append({"user": user_email, "status": "error", "error": str(e)})
+
+    succeeded = sum(1 for r in results if r["status"] == "success")
+    failed = sum(1 for r in results if r["status"] == "error")
+
+    return JSONResponse({
+        "status": "ok",
+        "users_processed": len(results),
+        "succeeded": succeeded,
+        "failed": failed,
+        "results": results,
+    })
 
 
 # ---------------------------------------------------------------------------

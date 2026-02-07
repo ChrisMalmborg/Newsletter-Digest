@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Newsletters</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 0 20px;
+            color: #333;
+        }
+        h1 { margin-bottom: 4px; }
+        p.subtitle { color: #666; margin-bottom: 24px; }
+        .newsletter {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .newsletter input[type="checkbox"] { margin-top: 4px; }
+        .newsletter .info { flex: 1; }
+        .newsletter .subject { font-weight: 600; }
+        .newsletter .from { font-size: 14px; color: #555; }
+        .newsletter .date { font-size: 13px; color: #888; }
+        .newsletter .snippet { font-size: 13px; color: #666; margin-top: 4px; }
+        .empty { color: #888; margin-top: 40px; }
+        a.back { color: #4285f4; text-decoration: none; }
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .btn-save {
+            background: #4285f4;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 24px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+        .btn-save:hover { background: #3367d6; }
+    </style>
+</head>
+<body>
+    <h1>Detected Newsletters</h1>
+    <p class="subtitle">Found {{ newsletters | length }} unique newsletter{{ "s" if newsletters | length != 1 else "" }} in your recent inbox.</p>
+
+    {% if newsletters %}
+    <form method="post" action="/newsletters/save">
+        {% for nl in newsletters %}
+        <div class="newsletter">
+            <input type="checkbox" name="selected" value="{{ nl.sender_email }}" checked>
+            <input type="hidden" name="sender_name_{{ nl.sender_email }}" value="{{ nl.sender_name }}">
+            <div class="info">
+                <div class="subject">{{ nl.subject }}</div>
+                <div class="from">{{ nl.from }}{% if nl.email_count and nl.email_count > 1 %} &middot; {{ nl.email_count }} emails{% endif %}</div>
+                <div class="date">{{ nl.date }}</div>
+                <div class="snippet">{{ nl.snippet }}...</div>
+            </div>
+        </div>
+        {% endfor %}
+        <div class="actions">
+            <button type="submit" class="btn-save">Save Selections</button>
+            <a class="back" href="/">Cancel</a>
+        </div>
+    </form>
+    {% else %}
+    <p class="empty">No newsletters detected in your recent emails.</p>
+    {% endif %}
+
+    {% if not newsletters %}
+    <p style="margin-top: 24px;"><a class="back" href="/">Back to home</a></p>
+    {% endif %}
+</body>
+</html>

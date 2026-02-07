@@ -1,0 +1,229 @@
+from pathlib import Path
+from typing import List
+from urllib.parse import quote
+
+from fastapi import FastAPI, Request, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
+from starlette.middleware.sessions import SessionMiddleware
+from jinja2 import Environment, FileSystemLoader
+
+from src.config import SESSION_SECRET_KEY, GOOGLE_CLIENT_ID
+from src.database import (
+    add_subscription,
+    deactivate_subscription,
+    get_all_subscriptions,
+    get_digest_by_id,
+    get_digests_for_user,
+    init_db,
+    update_subscription_status,
+)
+from src.web.gmail_client import (
+    get_authorization_url,
+    exchange_code,
+    fetch_recent_emails,
+    detect_newsletters,
+    get_user_email,
+)
+from src.web.token_storage import save_user_tokens, get_user_id_by_email
+
+app = FastAPI(title="Newsletter Digest")
+app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
+
+init_db()
+
+templates_dir = Path(__file__).parent / "templates"
+jinja_env = Environment(loader=FileSystemLoader(str(templates_dir)), autoescape=True)
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _get_user_email(request: Request):
+    """Return the user email from the session, or None."""
+    return request.session.get("user_email")
+
+
+def _require_auth(request: Request):
+    """Return user_email if authenticated, otherwise a redirect response."""
+    email = _get_user_email(request)
+    if not email:
+        return None, RedirectResponse("/?error=Please+connect+your+Gmail+account+first")
+    return email, None
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+@app.get("/", response_class=HTMLResponse)
+async def landing(request: Request):
+    """Landing page with 'Connect with Gmail' button."""
+    error = request.query_params.get("error")
+    success = request.query_params.get("success")
+    template = jinja_env.get_template("landing.html")
+    return template.render(error=error, success=success)
+
+
+@app.get("/auth/google")
+async def auth_google():
+    """Redirect the user to the Google OAuth consent screen."""
+    if not GOOGLE_CLIENT_ID:
+        return RedirectResponse("/?error=Google+OAuth+credentials+not+configured")
+    url = get_authorization_url()
+    return RedirectResponse(url)
+
+
+@app.get("/auth/callback")
+async def auth_callback(request: Request):
+    """Handle the OAuth callback from Google."""
+    error = request.query_params.get("error")
+    if error:
+        return RedirectResponse("/?error={}".format(error))
+
+    code = request.query_params.get("code")
+    if not code:
+        return RedirectResponse("/?error=No+authorization+code+received")
+
+    creds_data = exchange_code(code)
+    user_email = get_user_email(creds_data)
+    save_user_tokens(user_email, creds_data)
+    request.session["google_creds"] = creds_data
+    request.session["user_email"] = user_email
+    return RedirectResponse("/dashboard")
+
+
+@app.get("/newsletters", response_class=HTMLResponse)
+async def newsletters(request: Request):
+    """Show detected newsletters from the user's inbox."""
+    creds_data = request.session.get("google_creds")
+    if not creds_data:
+        return RedirectResponse("/?error=Please+connect+your+Gmail+account+first")
+
+    emails = fetch_recent_emails(creds_data, max_results=50)
+    detected = detect_newsletters(emails)
+
+    template = jinja_env.get_template("newsletters.html")
+    return template.render(newsletters=detected)
+
+
+@app.post("/newsletters/save")
+async def save_newsletters(request: Request):
+    """Save selected newsletter subscriptions to the database."""
+    creds_data = request.session.get("google_creds")
+    if not creds_data:
+        return RedirectResponse("/?error=Please+connect+your+Gmail+account+first", status_code=303)
+
+    user_email = request.session.get("user_email")
+    if not user_email:
+        user_email = get_user_email(creds_data)
+        request.session["user_email"] = user_email
+
+    form_data = await request.form()
+    selected_emails = form_data.getlist("selected")
+    # sender_name fields are keyed by sender email
+    sender_names = {k.removeprefix("sender_name_"): v for k, v in form_data.items() if k.startswith("sender_name_")}
+
+    # Resolve user_id from the users table (fall back to 1 for legacy users)
+    user_id = get_user_id_by_email(user_email) if user_email else None
+    if user_id is None:
+        user_id = 1
+
+    # Deduplicate by sender email so we only create one subscription per sender
+    unique_senders = dict.fromkeys(selected_emails)
+
+    count = 0
+    for sender_email in unique_senders:
+        sender_name = sender_names.get(sender_email, sender_email)
+        add_subscription(sender_email=sender_email, sender_name=sender_name, user_id=user_id)
+        count += 1
+
+    msg = quote("Saved {} newsletter subscription{}!".format(count, "s" if count != 1 else ""))
+    return RedirectResponse("/dashboard?success={}".format(msg), status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Dashboard routes
+# ---------------------------------------------------------------------------
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    """Main dashboard showing recent digests."""
+    user_email, redirect = _require_auth(request)
+    if redirect:
+        return redirect
+
+    success = request.query_params.get("success")
+    digests = get_digests_for_user(user_email, limit=30)
+    template = jinja_env.get_template("dashboard.html")
+    return template.render(
+        user_email=user_email,
+        digests=digests,
+        success=success,
+    )
+
+
+@app.get("/dashboard/digest/{digest_id}", response_class=HTMLResponse)
+async def view_digest(request: Request, digest_id: int):
+    """View a specific past digest."""
+    user_email, redirect = _require_auth(request)
+    if redirect:
+        return redirect
+
+    digest = get_digest_by_id(digest_id)
+    if not digest or digest["user_email"] != user_email:
+        return RedirectResponse("/dashboard")
+
+    template = jinja_env.get_template("digest_view.html")
+    return template.render(digest=digest)
+
+
+@app.get("/dashboard/settings", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    """Manage subscriptions and delivery preferences."""
+    user_email, redirect = _require_auth(request)
+    if redirect:
+        return redirect
+
+    user_id = get_user_id_by_email(user_email) or 1
+    subscriptions = get_all_subscriptions(user_id)
+    success = request.query_params.get("success")
+    template = jinja_env.get_template("settings.html")
+    return template.render(
+        user_email=user_email,
+        subscriptions=subscriptions,
+        success=success,
+    )
+
+
+@app.post("/dashboard/settings", response_class=HTMLResponse)
+async def save_settings(request: Request):
+    """Save subscription and delivery settings."""
+    user_email, redirect = _require_auth(request)
+    if redirect:
+        return redirect
+
+    user_id = get_user_id_by_email(user_email) or 1
+    form_data = await request.form()
+
+    # Active subscription IDs come back as a list of checked checkboxes
+    active_ids = set(form_data.getlist("active_subscriptions"))
+
+    # Update each subscription's active status
+    all_subs = get_all_subscriptions(user_id)
+    for sub in all_subs:
+        should_be_active = str(sub.id) in active_ids
+        if sub.is_active != should_be_active:
+            update_subscription_status(sub.id, should_be_active)
+
+    msg = quote("Settings saved!")
+    return RedirectResponse("/dashboard/settings?success={}".format(msg), status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("src.web.app:app", host="127.0.0.1", port=8000, reload=True)

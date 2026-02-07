@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ subject }}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: Georgia, 'Times New Roman', serif;">
+
+<!-- Wrapper -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5;">
+<tr><td align="center" style="padding: 24px 16px;">
+
+<!-- Main container -->
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 4px;">
+
+<!-- Header -->
+<tr><td style="padding: 40px 32px 24px 32px; border-bottom: 2px solid #2a2a2a;">
+  <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: normal; color: #2a2a2a; letter-spacing: 0.5px;">Newsletter Digest</h1>
+  <p style="margin: 0; font-size: 14px; color: #777777;">{{ digest_date }} &middot; {{ newsletter_count }} newsletter{{ "s" if newsletter_count != 1 else "" }}</p>
+</td></tr>
+
+{% if top_story %}
+<!-- Top Story -->
+<tr><td style="padding: 32px 32px 0 32px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9f7f4; border-left: 3px solid #c8a96e; border-radius: 0 4px 4px 0;">
+  <tr><td style="padding: 24px;">
+    <p style="margin: 0 0 6px 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: #c8a96e; font-family: -apple-system, Helvetica, Arial, sans-serif;">Top Story</p>
+    <h2 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 600; color: #2a2a2a;">{{ top_story.name }}</h2>
+    <p style="margin: 0 0 10px 0; font-size: 15px; line-height: 1.5; color: #444444;">{{ top_story.why }}</p>
+    {% if top_story.sources %}
+    <p style="margin: 0; font-size: 12px; color: #999999; font-family: -apple-system, Helvetica, Arial, sans-serif;">From: {{ top_story.sources | join(", ") }}</p>
+    {% endif %}
+  </td></tr>
+  </table>
+</td></tr>
+{% endif %}
+
+{% if clusters %}
+<!-- Themes -->
+<tr><td style="padding: 32px 32px 0 32px;">
+  <h2 style="margin: 0 0 20px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #999999; font-family: -apple-system, Helvetica, Arial, sans-serif; border-bottom: 1px solid #eeeeee; padding-bottom: 8px;">Themes Across Your Newsletters</h2>
+
+  {% for cluster in clusters %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+  <tr><td>
+    <h3 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 600; color: #2a2a2a;">{{ cluster.name }}
+      {% if cluster.importance is defined %}
+      <span style="font-size: 12px; font-weight: normal; color: #c8a96e; font-family: -apple-system, Helvetica, Arial, sans-serif;"> {{ cluster.importance }}/10</span>
+      {% endif %}
+    </h3>
+    <p style="margin: 0 0 6px 0; font-size: 15px; line-height: 1.5; color: #444444;">{{ cluster.synthesis }}</p>
+    {% if cluster.sources %}
+    <p style="margin: 0; font-size: 12px; color: #999999; font-family: -apple-system, Helvetica, Arial, sans-serif;">Sources: {{ cluster.sources | join(", ") }}</p>
+    {% endif %}
+  </td></tr>
+  </table>
+  {% endfor %}
+</td></tr>
+{% endif %}
+
+{% if summaries %}
+<!-- Individual Summaries -->
+<tr><td style="padding: 32px 32px 0 32px;">
+  <h2 style="margin: 0 0 20px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #999999; font-family: -apple-system, Helvetica, Arial, sans-serif; border-bottom: 1px solid #eeeeee; padding-bottom: 8px;">Individual Newsletters</h2>
+
+  {% for summary in summaries %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px; {% if not loop.last %}border-bottom: 1px solid #f0f0f0; padding-bottom: 24px;{% endif %}">
+  <tr><td>
+    <h3 style="margin: 0 0 2px 0; font-size: 16px; font-weight: 600; color: #2a2a2a;">{{ summary.sender_name }}</h3>
+    <p style="margin: 0 0 10px 0; font-size: 13px; color: #999999; font-style: italic;">{{ summary.subject }}</p>
+    <p style="margin: 0 0 12px 0; font-size: 15px; line-height: 1.5; color: #444444;">{{ summary.one_line_summary }}</p>
+
+    {% if summary.key_points %}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 0;">
+      {% for point in summary.key_points %}
+      <tr>
+        <td valign="top" style="padding: 0 8px 4px 0; font-size: 14px; color: #c8a96e; font-family: -apple-system, Helvetica, Arial, sans-serif;">&bull;</td>
+        <td style="padding: 0 0 4px 0; font-size: 14px; line-height: 1.45; color: #555555;">{{ point }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+
+    {% if summary.topic_tags %}
+    <p style="margin: 10px 0 0 0; font-size: 12px; color: #999999; font-family: -apple-system, Helvetica, Arial, sans-serif;">
+      {% for tag in summary.topic_tags %}
+      <span style="display: inline-block; background-color: #f5f5f5; padding: 2px 8px; border-radius: 3px; margin: 0 4px 4px 0;">{{ tag }}</span>
+      {% endfor %}
+    </p>
+    {% endif %}
+  </td></tr>
+  </table>
+  {% endfor %}
+</td></tr>
+{% endif %}
+
+{% if unique_finds %}
+<!-- Unique Finds -->
+<tr><td style="padding: 32px 32px 0 32px;">
+  <h2 style="margin: 0 0 20px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #999999; font-family: -apple-system, Helvetica, Arial, sans-serif; border-bottom: 1px solid #eeeeee; padding-bottom: 8px;">Unique Finds</h2>
+
+  {% for find in unique_finds %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+  <tr><td>
+    <p style="margin: 0 0 4px 0; font-size: 12px; color: #999999; font-family: -apple-system, Helvetica, Arial, sans-serif;">From {{ find.source }}</p>
+    <p style="margin: 0 0 4px 0; font-size: 15px; line-height: 1.5; color: #444444;">{{ find.insight }}</p>
+    <p style="margin: 0; font-size: 13px; color: #777777; font-style: italic;">{{ find.why_notable }}</p>
+  </td></tr>
+  </table>
+  {% endfor %}
+</td></tr>
+{% endif %}
+
+{% if contradictions %}
+<!-- Contradictions -->
+<tr><td style="padding: 32px 32px 0 32px;">
+  <h2 style="margin: 0 0 20px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: #999999; font-family: -apple-system, Helvetica, Arial, sans-serif; border-bottom: 1px solid #eeeeee; padding-bottom: 8px;">Contradictions</h2>
+
+  {% for item in contradictions %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+  <tr><td>
+    <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 600; color: #2a2a2a;">{{ item.topic }}</h3>
+    {% for pos in item.positions %}
+    <p style="margin: 0 0 4px 0; font-size: 14px; line-height: 1.45; color: #555555;">
+      <strong style="color: #2a2a2a;">{{ pos.source }}:</strong> {{ pos.position }}
+    </p>
+    {% endfor %}
+  </td></tr>
+  </table>
+  {% endfor %}
+</td></tr>
+{% endif %}
+
+<!-- Footer -->
+<tr><td style="padding: 32px; border-top: 1px solid #eeeeee; margin-top: 16px;">
+  <p style="margin: 0; font-size: 12px; color: #bbbbbb; text-align: center; font-family: -apple-system, Helvetica, Arial, sans-serif;">Generated by Newsletter Digest</p>
+</td></tr>
+
+</table>
+<!-- /Main container -->
+
+</td></tr>
+</table>
+<!-- /Wrapper -->
+
+</body>
+</html>

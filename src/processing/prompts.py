@@ -59,7 +59,7 @@ Respond with JSON containing:
      "why": str (4-5 sentences with real context and background. Why is this the top story? What led up to it? What are the stakes? What might happen next? Write it like the opening paragraph of a good magazine article — not a news brief.),
      "sources": [str]
    }}
-   The top_story may overlap with a cluster — that's fine, it just gets more depth here.
+   The top_story should NOT appear again in the clusters list. The clusters should cover DIFFERENT stories from the top story. If there are only a few distinct stories, it's okay to have fewer clusters rather than repeating content.
 
 4. "contradictions": Array of {{"topic": str, "positions": [{{"source": str, "position": str}}]}} — genuinely different takes from different sources on the same topic. May be empty.
 

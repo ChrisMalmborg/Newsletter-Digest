@@ -24,6 +24,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.config import DATA_DIR, CONFIG_DIR, DIGEST_TO_ADDRESS
 from src.database import (
     IntegrityError,
+    _q,
     init_db,
     get_connection,
     get_or_create_newsletter,
@@ -85,7 +86,7 @@ def email_already_stored(message_id):
     """Check if a message_id already exists in the database."""
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, status FROM emails WHERE message_id = ?", (message_id,))
+    cursor.execute(_q("SELECT id, status FROM emails WHERE message_id = ?"), (message_id,))
     row = cursor.fetchone()
     conn.close()
     if row:
@@ -319,7 +320,7 @@ def run(dry_run=False, hours=24, force=False, user=None):
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT sender_name FROM newsletters WHERE id = ?",
+            _q("SELECT sender_name FROM newsletters WHERE id = ?"),
             (email_obj.newsletter_id,),
         )
         row = cursor.fetchone()

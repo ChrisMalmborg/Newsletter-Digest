@@ -9,13 +9,16 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.middleware.sessions import SessionMiddleware
 from jinja2 import Environment, FileSystemLoader
 
-from src.config import SESSION_SECRET_KEY, GOOGLE_CLIENT_ID, CRON_SECRET, PROJECT_ROOT
+from src.config import SESSION_SECRET_KEY, GOOGLE_CLIENT_ID, CRON_SECRET, PROJECT_ROOT, ADMIN_EMAIL
 from src.database import (
     add_subscription,
+    count_all_digests,
     deactivate_subscription,
+    get_admin_user_stats,
     get_all_subscriptions,
     get_digest_by_id,
     get_digests_for_user,
+    get_user_by_id,
     init_db,
     update_subscription_status,
 )
@@ -222,6 +225,75 @@ async def save_settings(request: Request):
 
     msg = quote("Settings saved!")
     return RedirectResponse("/dashboard/settings?success={}".format(msg), status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Static / informational pages
+# ---------------------------------------------------------------------------
+
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy(request: Request):
+    """Privacy policy page."""
+    template = jinja_env.get_template("privacy.html")
+    return template.render()
+
+
+# ---------------------------------------------------------------------------
+# Admin dashboard
+# ---------------------------------------------------------------------------
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_dashboard(request: Request):
+    """Admin dashboard — only accessible to the configured ADMIN_EMAIL."""
+    user_email, redirect = _require_auth(request)
+    if redirect:
+        return redirect
+
+    if not ADMIN_EMAIL or user_email != ADMIN_EMAIL:
+        return RedirectResponse("/dashboard")
+
+    users = get_admin_user_stats()
+    for u in users:
+        u["signup_date"] = str(u.get("created_at") or "")[:10] or "—"
+        u["last_digest"] = str(u.get("last_digest_date") or "")[:10] or "—"
+
+    total_subscriptions = sum(u.get("subscription_count") or 0 for u in users)
+    total_digests = count_all_digests()
+
+    template = jinja_env.get_template("admin.html")
+    return template.render(
+        admin_email=user_email,
+        users=users,
+        total_subscriptions=total_subscriptions,
+        total_digests=total_digests,
+    )
+
+
+@app.get("/admin/user/{user_id}", response_class=HTMLResponse)
+async def admin_user_detail(request: Request, user_id: int):
+    """Admin view of a single user's subscriptions."""
+    user_email, redirect = _require_auth(request)
+    if redirect:
+        return redirect
+
+    if not ADMIN_EMAIL or user_email != ADMIN_EMAIL:
+        return RedirectResponse("/dashboard")
+
+    user = get_user_by_id(user_id)
+    if not user:
+        return RedirectResponse("/admin")
+
+    user["signup_date"] = str(user.get("created_at") or "")[:10] or "—"
+    subscriptions = get_all_subscriptions(user_id)
+    digests = get_digests_for_user(user["email"], limit=10)
+
+    template = jinja_env.get_template("admin_user.html")
+    return template.render(
+        admin_email=user_email,
+        user=user,
+        subscriptions=subscriptions,
+        digests=digests,
+    )
 
 
 # ---------------------------------------------------------------------------

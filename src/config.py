@@ -46,3 +46,6 @@ SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "change-me-in-production")
 
 # Cron / scheduled jobs
 CRON_SECRET = os.getenv("CRON_SECRET", "")
+
+# Admin dashboard (email of the admin user)
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy — Newsletter Digest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans bg-white text-gray-900 antialiased">
+
+    <!-- Nav -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-100">
+        <nav class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="/" class="text-lg font-semibold tracking-tight text-gray-900">Newsletter Digest</a>
+            <a href="/auth/google"
+               class="text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                Get Started
+            </a>
+        </nav>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-6 py-16">
+
+        <h1 class="text-4xl font-bold tracking-tight text-gray-900 mb-3">Privacy Policy</h1>
+        <p class="text-gray-400 text-sm mb-12">Last updated: February 2026</p>
+
+        <div class="space-y-10">
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">What data we collect</h2>
+                <p class="text-gray-600 leading-relaxed mb-4">We collect only what is necessary to provide the service:</p>
+                <ul class="space-y-3 text-gray-600">
+                    <li class="flex gap-3">
+                        <span class="text-blue-500 mt-0.5 shrink-0">•</span>
+                        <span><strong class="text-gray-800">Email address</strong> — your Gmail address, used to identify your account and deliver your daily digest.</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="text-blue-500 mt-0.5 shrink-0">•</span>
+                        <span><strong class="text-gray-800">OAuth tokens</strong> — read-only access tokens issued by Google, used to fetch newsletter emails from your inbox. We never store your Gmail password.</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="text-blue-500 mt-0.5 shrink-0">•</span>
+                        <span><strong class="text-gray-800">Newsletter preferences</strong> — the list of newsletter senders you have chosen to include in your digest.</span>
+                    </li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">How we use your data</h2>
+                <p class="text-gray-600 leading-relaxed mb-4">Your data is used exclusively to provide the Newsletter Digest service:</p>
+                <ul class="space-y-3 text-gray-600">
+                    <li class="flex gap-3">
+                        <span class="text-blue-500 mt-0.5 shrink-0">•</span>
+                        <span>Fetching newsletter emails from your Gmail inbox using read-only OAuth access</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="text-blue-500 mt-0.5 shrink-0">•</span>
+                        <span>Generating AI-powered summaries via the Anthropic Claude API</span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="text-blue-500 mt-0.5 shrink-0">•</span>
+                        <span>Sending your daily digest email to your registered address</span>
+                    </li>
+                </ul>
+                <p class="text-gray-600 leading-relaxed mt-4">We do not use your data for advertising, analytics, or any purpose beyond delivering your digest.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">Data storage</h2>
+                <p class="text-gray-600 leading-relaxed">Your account data is stored securely on our servers. We retain your OAuth tokens only as long as your account is active. Newsletter content processed to generate summaries is not permanently stored. We never sell, rent, or share your personal data with third parties.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">Data deletion</h2>
+                <p class="text-gray-600 leading-relaxed">You can request deletion of your account and all associated data at any time by emailing
+                    <a href="mailto:privacy@newsletterdigest.app" class="text-blue-600 hover:underline">privacy@newsletterdigest.app</a>.
+                    We will process deletion requests within 30 days. You can also revoke Gmail access at any time from your
+                    <a href="https://myaccount.google.com/permissions" class="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">Google account permissions</a>.</p>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">Third-party services</h2>
+                <p class="text-gray-600 leading-relaxed mb-4">We use the following third-party services to operate Newsletter Digest:</p>
+                <ul class="space-y-3 text-gray-600">
+                    <li class="flex gap-3">
+                        <span class="text-blue-500 mt-0.5 shrink-0">•</span>
+                        <span>
+                            <strong class="text-gray-800">Google OAuth &amp; Gmail API</strong> — for authenticating your account and reading newsletter emails with read-only access.
+                            Subject to <a href="https://policies.google.com/privacy" class="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">Google's Privacy Policy</a>.
+                        </span>
+                    </li>
+                    <li class="flex gap-3">
+                        <span class="text-blue-500 mt-0.5 shrink-0">•</span>
+                        <span>
+                            <strong class="text-gray-800">Anthropic Claude API</strong> — for generating AI summaries of your newsletters. Email content sent for summarization is subject to
+                            <a href="https://www.anthropic.com/privacy" class="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">Anthropic's Privacy Policy</a>.
+                        </span>
+                    </li>
+                </ul>
+            </section>
+
+            <section>
+                <h2 class="text-xl font-semibold text-gray-900 mb-3">Contact</h2>
+                <p class="text-gray-600 leading-relaxed">If you have questions or concerns about your privacy, please contact us at
+                    <a href="mailto:privacy@newsletterdigest.app" class="text-blue-600 hover:underline">privacy@newsletterdigest.app</a>.
+                </p>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-100 bg-white py-8 px-6 mt-8">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
+            <span>Built with <a href="https://anthropic.com" class="text-gray-500 hover:text-gray-700 transition-colors">Claude API</a></span>
+            <div class="flex items-center gap-6">
+                <a href="https://github.com/chrismalmborg/newsletter-digest" class="hover:text-gray-700 transition-colors">GitHub</a>
+                <a href="/privacy" class="hover:text-gray-700 transition-colors">Privacy</a>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>

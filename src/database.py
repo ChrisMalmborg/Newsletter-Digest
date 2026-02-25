@@ -650,3 +650,49 @@ def get_digest_by_id(digest_id: int) -> Optional[dict]:
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None
+
+
+# ---------------------------------------------------------------------------
+# Admin helpers
+# ---------------------------------------------------------------------------
+
+def get_admin_user_stats() -> list[dict]:
+    """Return all users with subscription count and last digest date."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT
+            u.id,
+            u.email,
+            u.created_at,
+            COUNT(DISTINCT s.id) AS subscription_count,
+            MAX(d.digest_date) AS last_digest_date
+        FROM users u
+        LEFT JOIN subscriptions s ON s.user_id = u.id
+        LEFT JOIN digests d ON d.user_email = u.email
+        GROUP BY u.id, u.email, u.created_at
+        ORDER BY u.created_at DESC
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]
+
+
+def get_user_by_id(user_id: int) -> Optional[dict]:
+    """Return a single user row by ID."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(_q("SELECT id, email, created_at FROM users WHERE id = ?"), (user_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def count_all_digests() -> int:
+    """Return the total number of digests across all users."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) AS cnt FROM digests")
+    row = cursor.fetchone()
+    conn.close()
+    return int(row["cnt"]) if row else 0

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ user.email }} — Admin — Newsletter Digest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="font-sans bg-gray-50 text-gray-900 antialiased">
+
+    <!-- Nav -->
+    <header class="bg-white border-b border-gray-200">
+        <nav class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="/" class="text-lg font-semibold tracking-tight text-gray-900">Newsletter Digest</a>
+                <span class="text-gray-300 select-none">/</span>
+                <a href="/admin" class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">Admin</a>
+                <span class="text-gray-300 select-none">/</span>
+                <span class="text-sm font-medium text-gray-500 truncate max-w-xs">{{ user.email }}</span>
+            </div>
+            <a href="/admin" class="text-sm text-gray-500 hover:text-gray-900 transition-colors">← Back to Admin</a>
+        </nav>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-6 py-10">
+
+        <!-- User header -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">{{ user.email }}</h1>
+            <p class="text-gray-500 text-sm mt-1">Signed up {{ user.signup_date }}</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Subscriptions -->
+            <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="font-semibold text-gray-900">Subscriptions</h2>
+                    <span class="text-xs font-medium text-gray-400">{{ subscriptions | length }} total</span>
+                </div>
+
+                {% if subscriptions %}
+                <ul class="divide-y divide-gray-50">
+                    {% for sub in subscriptions %}
+                    <li class="px-6 py-4 flex items-center justify-between gap-4">
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">{{ sub.sender_name }}</p>
+                            <p class="text-xs text-gray-400 truncate mt-0.5">{{ sub.sender_email }}</p>
+                        </div>
+                        <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {% if sub.is_active %}bg-green-50 text-green-700{% else %}bg-gray-100 text-gray-400{% endif %}">
+                            {% if sub.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="px-6 py-12 text-center text-gray-400 text-sm">No subscriptions.</div>
+                {% endif %}
+            </div>
+
+            <!-- Recent digests -->
+            <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="font-semibold text-gray-900">Recent Digests</h2>
+                    <span class="text-xs font-medium text-gray-400">last 10</span>
+                </div>
+
+                {% if digests %}
+                <ul class="divide-y divide-gray-50">
+                    {% for digest in digests %}
+                    <li class="px-6 py-4 flex items-center justify-between gap-4">
+                        <div class="min-w-0">
+                            <p class="text-sm font-medium text-gray-900">{{ digest.digest_date }}</p>
+                            <p class="text-xs text-gray-400 mt-0.5">
+                                {{ digest.newsletters_count }} newsletter{% if digest.newsletters_count != 1 %}s{% endif %},
+                                {{ digest.themes_count }} theme{% if digest.themes_count != 1 %}s{% endif %}
+                            </p>
+                        </div>
+                        <a href="/dashboard/digest/{{ digest.id }}"
+                           class="shrink-0 text-blue-600 hover:text-blue-800 text-xs font-medium transition-colors">
+                            View →
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="px-6 py-12 text-center text-gray-400 text-sm">No digests yet.</div>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </main>
+
+</body>
+</html>

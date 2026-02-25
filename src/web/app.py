@@ -1,5 +1,6 @@
 import importlib.util
 import logging
+from datetime import date, timedelta
 from pathlib import Path
 from typing import List
 from urllib.parse import quote
@@ -210,11 +211,35 @@ async def dashboard(request: Request):
 
     success = request.query_params.get("success")
     digests = get_digests_for_user(user_email, limit=30)
+
+    # Pre-format digest dates for display
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    month_names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+    for d in digests:
+        raw = d.get("digest_date", "")
+        try:
+            parts = raw.split("-")
+            y, m, day = int(parts[0]), int(parts[1]), int(parts[2])
+            d_date = date(y, m, day)
+            if d_date == today:
+                d["display_date"] = "Today"
+            elif d_date == yesterday:
+                d["display_date"] = "Yesterday"
+            else:
+                d["display_date"] = f"{month_names[m - 1]} {day}, {y}"
+        except Exception:
+            d["display_date"] = raw
+
+    user_id = get_user_id_by_email(user_email) or 1
+    subscription_count = len(get_active_subscriptions(user_id))
+
     template = jinja_env.get_template("dashboard.html")
     return template.render(
         user_email=user_email,
         digests=digests,
         success=success,
+        subscription_count=subscription_count,
     )
 
 

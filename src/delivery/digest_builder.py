@@ -24,8 +24,8 @@ def build_digest(
     # Extract cluster sub-sections
     top_story = clusters.get("top_story") or {}
     theme_list = clusters.get("clusters") or []
-    unique_finds = clusters.get("unique_finds") or []
     contradictions = clusters.get("contradictions") or []
+    digest_intro = clusters.get("digest_intro") or ""
 
     # Format date for display
     date_str = digest_date.strftime("%b %-d, %Y")
@@ -56,10 +56,9 @@ def build_digest(
         subject=subject,
         digest_date=date_str,
         newsletter_count=newsletter_count,
+        digest_intro=digest_intro,
         top_story=top_story if top_story else None,
         clusters=theme_list,
-        summaries=summaries,
-        unique_finds=unique_finds,
         contradictions=contradictions,
     )
 
@@ -67,10 +66,9 @@ def build_digest(
     text = _build_plain_text(
         date_str=date_str,
         newsletter_count=newsletter_count,
+        digest_intro=digest_intro,
         top_story=top_story,
         clusters=theme_list,
-        summaries=summaries,
-        unique_finds=unique_finds,
         contradictions=contradictions,
     )
 
@@ -80,10 +78,9 @@ def build_digest(
 def _build_plain_text(
     date_str: str,
     newsletter_count: int,
+    digest_intro: str,
     top_story: Optional[dict],
     clusters: List[dict],
-    summaries: List[dict],
-    unique_finds: List[dict],
     contradictions: List[dict],
 ) -> str:
     """Generate a plain-text version of the digest."""
@@ -94,9 +91,13 @@ def _build_plain_text(
     ))
     lines.append("=" * 60)
 
+    if digest_intro:
+        lines.append("")
+        lines.append(digest_intro)
+
     if top_story and top_story.get("name"):
         lines.append("")
-        lines.append("TOP STORY")
+        lines.append("YOUR TOP STORY")
         lines.append("-" * 40)
         lines.append(top_story["name"])
         if top_story.get("why"):
@@ -106,47 +107,23 @@ def _build_plain_text(
 
     if clusters:
         lines.append("")
-        lines.append("THEMES ACROSS YOUR NEWSLETTERS")
+        lines.append("TODAY'S TRENDS")
         lines.append("-" * 40)
         for i, cluster in enumerate(clusters, 1):
-            importance = cluster.get("importance", "")
-            imp_str = " [{}/10]".format(importance) if importance else ""
             lines.append("")
-            lines.append("{}. {}{}".format(i, cluster.get("name", ""), imp_str))
+            lines.append("{}. {}".format(i, cluster.get("name", "")))
             if cluster.get("synthesis"):
                 lines.append("   {}".format(cluster["synthesis"]))
+            if cluster.get("cross_theme_note"):
+                lines.append("   {}".format(cluster["cross_theme_note"]))
             if cluster.get("sources"):
                 lines.append("   Sources: {}".format(", ".join(cluster["sources"])))
-
-    if summaries:
-        lines.append("")
-        lines.append("INDIVIDUAL NEWSLETTERS")
-        lines.append("-" * 40)
-        for summary in summaries:
-            lines.append("")
-            lines.append("{} - {}".format(
-                summary.get("sender_name", ""),
-                summary.get("subject", ""),
-            ))
-            if summary.get("one_line_summary"):
-                lines.append("  {}".format(summary["one_line_summary"]))
-            for point in summary.get("key_points", []):
-                lines.append("  * {}".format(point))
-
-    if unique_finds:
-        lines.append("")
-        lines.append("UNIQUE FINDS")
-        lines.append("-" * 40)
-        for find in unique_finds:
-            lines.append("")
-            lines.append("From {}:".format(find.get("source", "")))
-            lines.append("  {}".format(find.get("insight", "")))
-            if find.get("why_notable"):
-                lines.append("  Why: {}".format(find["why_notable"]))
+            if cluster.get("read_more_url"):
+                lines.append("   Read more: {}".format(cluster["read_more_url"]))
 
     if contradictions:
         lines.append("")
-        lines.append("CONTRADICTIONS")
+        lines.append("DIFFERENT TAKES")
         lines.append("-" * 40)
         for item in contradictions:
             lines.append("")

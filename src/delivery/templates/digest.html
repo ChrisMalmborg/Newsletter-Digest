@@ -29,6 +29,13 @@
   </table>
 </td></tr>
 
+{% if digest_intro %}
+<!-- Intro -->
+<tr><td style="padding: 24px 40px 0 40px;">
+  <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #475569;">{{ digest_intro }}</p>
+</td></tr>
+{% endif %}
+
 {% if top_story %}
 <!-- Top Story -->
 <tr><td style="padding: 28px 40px 0 40px;">
@@ -36,7 +43,7 @@
   <tr><td style="padding: 20px 24px;">
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom: 10px;">
     <tr><td style="background-color: #2563eb; border-radius: 4px; padding: 3px 8px;">
-      <span style="font-size: 10px; font-weight: 700; color: #ffffff; letter-spacing: 1px; text-transform: uppercase; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Top Story</span>
+      <span style="font-size: 10px; font-weight: 700; color: #ffffff; letter-spacing: 1px; text-transform: uppercase; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Your Top Story</span>
     </td></tr>
     </table>
     <h2 style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #0f172a; line-height: 1.4;">{{ top_story.name }}</h2>
@@ -56,7 +63,7 @@
 <tr><td style="padding: 28px 40px 0 40px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 18px;">
   <tr><td style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">What's Trending</span>
+    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Today's Trends</span>
   </td></tr>
   </table>
 
@@ -65,93 +72,30 @@
   <tr><td>
     <h3 style="margin: 0 0 6px 0; font-size: 15px; font-weight: 700; color: #0f172a; line-height: 1.35;">{{ cluster.name }}</h3>
     <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.65; color: #334155;">{{ cluster.synthesis }}</p>
-    {% if cluster.sources %}
-    <p style="margin: 0; font-size: 11px; line-height: 1.6;">
-      {% for source in cluster.sources %}<span style="display: inline-block; background-color: #f8fafc; color: #64748b; font-weight: 500; padding: 2px 9px; border-radius: 20px; border: 1px solid #e2e8f0; margin: 0 5px 4px 0;">{{ source }}</span>{% endfor %}
-    </p>
+    {% if cluster.cross_theme_note %}
+    <p style="margin: 0 0 10px 0; font-size: 13px; line-height: 1.55; color: #64748b; font-style: italic;">{{ cluster.cross_theme_note }}</p>
     {% endif %}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td>
+        {% if cluster.sources %}
+        <p style="margin: 0; font-size: 11px; line-height: 1.6;">
+          {% for source in cluster.sources %}<span style="display: inline-block; background-color: #f8fafc; color: #64748b; font-weight: 500; padding: 2px 9px; border-radius: 20px; border: 1px solid #e2e8f0; margin: 0 5px 4px 0;">{{ source }}</span>{% endfor %}
+        </p>
+        {% endif %}
+      </td>
+      {% if cluster.read_more_url %}
+      <td align="right" style="white-space: nowrap; vertical-align: middle;">
+        <a href="{{ cluster.read_more_url }}" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 500;">Read the original &rarr;</a>
+      </td>
+      {% endif %}
+    </tr>
+    </table>
   </td></tr>
   </table>
   {% if not loop.last %}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
   <tr><td style="padding: 18px 0;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-    <tr><td style="height: 1px; background-color: #f1f5f9; font-size: 0; line-height: 0;">&nbsp;</td></tr>
-    </table>
-  </td></tr>
-  </table>
-  {% endif %}
-  {% endfor %}
-</td></tr>
-{% endif %}
-
-{% if summaries %}
-<!-- Individual Summaries -->
-<tr><td style="padding: 28px 40px 0 40px;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 18px;">
-  <tr><td style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Your Newsletters</span>
-  </td></tr>
-  </table>
-
-  {% for summary in summaries %}
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-  <tr><td>
-    <h3 style="margin: 0 0 2px 0; font-size: 14px; font-weight: 700; color: #0f172a;">{{ summary.sender_name }}</h3>
-    {% if summary.subject %}
-    <p style="margin: 0 0 8px 0; font-size: 12px; color: #94a3b8; font-style: italic;">{{ summary.subject }}</p>
-    {% endif %}
-    <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.65; color: #334155;">{{ summary.one_line_summary }}</p>
-    {% if summary.key_points %}
-    <table role="presentation" cellpadding="0" cellspacing="0" width="100%">
-      {% for point in summary.key_points %}
-      <tr>
-        <td valign="top" style="width: 14px; padding: 0 6px 5px 0; font-size: 14px; color: #2563eb; line-height: 1.5;">&bull;</td>
-        <td style="padding: 0 0 5px 0; font-size: 13px; line-height: 1.55; color: #475569;">{{ point }}</td>
-      </tr>
-      {% endfor %}
-    </table>
-    {% endif %}
-    {% if summary.topic_tags %}
-    <p style="margin: 8px 0 0 0; font-size: 11px; line-height: 1.6;">
-      {% for tag in summary.topic_tags %}<span style="display: inline-block; background-color: #f8fafc; color: #64748b; padding: 2px 9px; border-radius: 20px; border: 1px solid #e2e8f0; margin: 0 4px 4px 0;">{{ tag }}</span>{% endfor %}
-    </p>
-    {% endif %}
-  </td></tr>
-  </table>
-  {% if not loop.last %}
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-  <tr><td style="padding: 18px 0;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-    <tr><td style="height: 1px; background-color: #f1f5f9; font-size: 0; line-height: 0;">&nbsp;</td></tr>
-    </table>
-  </td></tr>
-  </table>
-  {% endif %}
-  {% endfor %}
-</td></tr>
-{% endif %}
-
-{% if unique_finds %}
-<!-- Worth Noting -->
-<tr><td style="padding: 28px 40px 0 40px;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 18px;">
-  <tr><td style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Worth Noting</span>
-  </td></tr>
-  </table>
-
-  {% for find in unique_finds %}
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-  <tr><td>
-    <p style="margin: 0 0 3px 0; font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ find.source }}</p>
-    <p style="margin: 0 0 4px 0; font-size: 14px; line-height: 1.65; color: #334155;">{{ find.insight }}</p>
-    <p style="margin: 0; font-size: 13px; color: #64748b; font-style: italic;">{{ find.why_notable }}</p>
-  </td></tr>
-  </table>
-  {% if not loop.last %}
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-  <tr><td style="padding: 14px 0;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     <tr><td style="height: 1px; background-color: #f1f5f9; font-size: 0; line-height: 0;">&nbsp;</td></tr>
     </table>

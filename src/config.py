@@ -34,6 +34,7 @@ DIGEST_TO_ADDRESS = os.getenv("DIGEST_TO_ADDRESS")
 
 # Database
 DATABASE_PATH = DATA_DIR / "newsletters.db"
+DATABASE_URL = os.getenv("DATABASE_URL")  # Set in production for PostgreSQL
 
 # Google OAuth
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")

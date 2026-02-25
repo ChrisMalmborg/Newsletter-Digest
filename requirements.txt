@@ -1,4 +1,5 @@
 anthropic
+psycopg2-binary
 beautifulsoup4
 html2text
 pyyaml

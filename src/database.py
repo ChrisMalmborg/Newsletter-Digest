@@ -1,26 +1,119 @@
 import json
 import sqlite3
 from datetime import datetime, date
-from typing import Optional
+from typing import Optional, Any
 
-from .config import DATABASE_PATH
+from .config import DATABASE_PATH, DATABASE_URL
 from .models import Newsletter, Email, Summary, Cluster, Subscription
 
+IS_POSTGRES = bool(DATABASE_URL)
 
-def get_connection() -> sqlite3.Connection:
+# ---------------------------------------------------------------------------
+# PostgreSQL connection pool (only initialised when DATABASE_URL is set)
+# ---------------------------------------------------------------------------
+
+if IS_POSTGRES:
+    import psycopg2
+    import psycopg2.pool
+    from psycopg2.extras import RealDictCursor
+
+    # Expose a DB-agnostic IntegrityError that callers can catch.
+    IntegrityError = psycopg2.IntegrityError
+
+    _pool = psycopg2.pool.ThreadedConnectionPool(1, 10, DATABASE_URL)
+
+    class _PooledConnection:
+        """Thin wrapper around a psycopg2 connection borrowed from the pool.
+
+        Intercepts close() to return the connection to the pool instead of
+        discarding it, so the rest of the code can call conn.close() freely.
+        """
+
+        def __init__(self, conn):
+            self._conn = conn
+
+        def cursor(self):  # noqa: D102
+            return self._conn.cursor(cursor_factory=RealDictCursor)
+
+        def commit(self):  # noqa: D102
+            self._conn.commit()
+
+        def rollback(self):  # noqa: D102
+            self._conn.rollback()
+
+        def close(self):  # returns connection to pool rather than closing it
+            _pool.putconn(self._conn)
+
+else:
+    IntegrityError = sqlite3.IntegrityError
+
+
+def get_connection():
+    """Return a database connection (SQLite or pooled PostgreSQL)."""
+    if IS_POSTGRES:
+        return _PooledConnection(_pool.getconn())
     conn = sqlite3.connect(DATABASE_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
+
+# ---------------------------------------------------------------------------
+# Query helpers for cross-database compatibility
+# ---------------------------------------------------------------------------
+
+def _q(query: str) -> str:
+    """Replace SQLite-style ? placeholders with %s for PostgreSQL."""
+    if IS_POSTGRES:
+        return query.replace("?", "%s")
+    return query
+
+
+def _insert_and_get_id(cursor, query: str, params: tuple) -> int:
+    """Execute an INSERT and return the generated primary key.
+
+    PostgreSQL uses RETURNING id; SQLite uses cursor.lastrowid.
+    The *query* must use ? placeholders (they are adapted automatically).
+    """
+    if IS_POSTGRES:
+        cursor.execute(_q(query) + " RETURNING id", params)
+        return cursor.fetchone()["id"]
+    cursor.execute(query, params)
+    return cursor.lastrowid
+
+
+def _pk_col() -> str:
+    """Return the DDL fragment for an auto-incrementing primary key column."""
+    return "id SERIAL PRIMARY KEY" if IS_POSTGRES else "id INTEGER PRIMARY KEY AUTOINCREMENT"
+
+
+def _date_cast(column: str) -> str:
+    """Return a SQL expression that extracts the DATE portion of a timestamp column."""
+    return f"{column}::date" if IS_POSTGRES else f"date({column})"
+
+
+def _parse_dt(value: Any) -> Optional[datetime]:
+    """Parse a datetime that may already be a datetime (PostgreSQL) or a string (SQLite)."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(str(value))
+
+
+# ---------------------------------------------------------------------------
+# Schema creation
+# ---------------------------------------------------------------------------
 
 def init_db():
     """Create all tables if they don't exist."""
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
+    pk = _pk_col()
+
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS newsletters (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            {pk},
             sender_email TEXT UNIQUE NOT NULL,
             sender_name TEXT NOT NULL,
             notes TEXT DEFAULT '',
@@ -28,9 +121,9 @@ def init_db():
         )
     """)
 
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS emails (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            {pk},
             newsletter_id INTEGER NOT NULL,
             message_id TEXT UNIQUE NOT NULL,
             subject TEXT NOT NULL,
@@ -43,9 +136,9 @@ def init_db():
         )
     """)
 
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS summaries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            {pk},
             email_id INTEGER UNIQUE NOT NULL,
             key_points TEXT DEFAULT '[]',
             entities TEXT DEFAULT '[]',
@@ -57,9 +150,9 @@ def init_db():
         )
     """)
 
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS clusters (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            {pk},
             digest_date TEXT NOT NULL,
             cluster_name TEXT NOT NULL,
             summary TEXT DEFAULT '',
@@ -68,21 +161,21 @@ def init_db():
         )
     """)
 
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS subscriptions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            {pk},
             user_id INTEGER NOT NULL DEFAULT 1,
             sender_email TEXT NOT NULL,
             sender_name TEXT NOT NULL,
-            is_active BOOLEAN NOT NULL DEFAULT 1,
+            is_active SMALLINT NOT NULL DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(user_id, sender_email)
         )
     """)
 
-    cursor.execute("""
+    cursor.execute(f"""
         CREATE TABLE IF NOT EXISTS digests (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            {pk},
             user_email TEXT NOT NULL,
             digest_date TEXT NOT NULL,
             subject TEXT NOT NULL,
@@ -93,7 +186,17 @@ def init_db():
         )
     """)
 
-    # Create indexes for common queries
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS users (
+            {pk},
+            email TEXT UNIQUE NOT NULL,
+            oauth_tokens TEXT DEFAULT '{{}}',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    # Indexes for common queries
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_emails_status ON emails(status)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_emails_received ON emails(received_at)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_clusters_date ON clusters(digest_date)")
@@ -104,47 +207,56 @@ def init_db():
     conn.close()
 
 
+# ---------------------------------------------------------------------------
+# Newsletter helpers
+# ---------------------------------------------------------------------------
+
 def get_or_create_newsletter(sender_email: str, sender_name: str) -> int:
     """Get existing newsletter ID or create new one."""
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id FROM newsletters WHERE sender_email = ?", (sender_email,))
+    cursor.execute(_q("SELECT id FROM newsletters WHERE sender_email = ?"), (sender_email,))
     row = cursor.fetchone()
 
     if row:
         newsletter_id = row["id"]
     else:
-        cursor.execute(
+        newsletter_id = _insert_and_get_id(
+            cursor,
             "INSERT INTO newsletters (sender_email, sender_name) VALUES (?, ?)",
-            (sender_email, sender_name)
+            (sender_email, sender_name),
         )
-        newsletter_id = cursor.lastrowid
         conn.commit()
 
     conn.close()
     return newsletter_id
 
 
+# ---------------------------------------------------------------------------
+# Email helpers
+# ---------------------------------------------------------------------------
+
 def save_email(email: Email) -> int:
     """Save an email and return its ID."""
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
-        INSERT INTO emails (newsletter_id, message_id, subject, received_at, raw_html, plain_text, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (
-        email.newsletter_id,
-        email.message_id,
-        email.subject,
-        email.received_at.isoformat(),
-        email.raw_html,
-        email.plain_text,
-        email.status
-    ))
+    email_id = _insert_and_get_id(
+        cursor,
+        """INSERT INTO emails (newsletter_id, message_id, subject, received_at, raw_html, plain_text, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (
+            email.newsletter_id,
+            email.message_id,
+            email.subject,
+            email.received_at.isoformat(),
+            email.raw_html,
+            email.plain_text,
+            email.status,
+        ),
+    )
 
-    email_id = cursor.lastrowid
     conn.commit()
     conn.close()
     return email_id
@@ -167,50 +279,25 @@ def get_email_by_id(email_id: int) -> Optional[Email]:
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM emails WHERE id = ?", (email_id,))
+    cursor.execute(_q("SELECT * FROM emails WHERE id = ?"), (email_id,))
     row = cursor.fetchone()
     conn.close()
 
     return _row_to_email(row) if row else None
 
 
-def _row_to_email(row: sqlite3.Row) -> Email:
-    """Convert a database row to an Email object."""
+def _row_to_email(row) -> Email:
     return Email(
         id=row["id"],
         newsletter_id=row["newsletter_id"],
         message_id=row["message_id"],
         subject=row["subject"],
-        received_at=datetime.fromisoformat(row["received_at"]),
+        received_at=_parse_dt(row["received_at"]),
         raw_html=row["raw_html"],
         plain_text=row["plain_text"],
         status=row["status"],
-        created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else None
+        created_at=_parse_dt(row["created_at"]),
     )
-
-
-def save_summary(summary: Summary) -> int:
-    """Save a summary and return its ID."""
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        INSERT INTO summaries (email_id, key_points, entities, topic_tags, notable_links, importance_score, one_line_summary)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (
-        summary.email_id,
-        json.dumps(summary.key_points),
-        json.dumps(summary.entities),
-        json.dumps(summary.topic_tags),
-        json.dumps(summary.notable_links),
-        summary.importance_score,
-        summary.one_line_summary
-    ))
-
-    summary_id = cursor.lastrowid
-    conn.commit()
-    conn.close()
-    return summary_id
 
 
 def update_email_status(email_id: int, status: str):
@@ -218,29 +305,44 @@ def update_email_status(email_id: int, status: str):
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("UPDATE emails SET status = ? WHERE id = ?", (status, email_id))
+    cursor.execute(_q("UPDATE emails SET status = ? WHERE id = ?"), (status, email_id))
 
     conn.commit()
     conn.close()
 
 
-def get_todays_summaries() -> list[Summary]:
-    """Get all summaries for emails received today."""
+# ---------------------------------------------------------------------------
+# Summary helpers
+# ---------------------------------------------------------------------------
+
+def save_summary(summary: Summary) -> int:
+    """Save a summary and return its ID."""
     conn = get_connection()
     cursor = conn.cursor()
 
-    today = date.today().isoformat()
-    cursor.execute("""
-        SELECT s.* FROM summaries s
-        JOIN emails e ON s.email_id = e.id
-        WHERE date(e.received_at) = ?
-        ORDER BY s.importance_score DESC
-    """, (today,))
+    summary_id = _insert_and_get_id(
+        cursor,
+        """INSERT INTO summaries (email_id, key_points, entities, topic_tags, notable_links, importance_score, one_line_summary)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (
+            summary.email_id,
+            json.dumps(summary.key_points),
+            json.dumps(summary.entities),
+            json.dumps(summary.topic_tags),
+            json.dumps(summary.notable_links),
+            summary.importance_score,
+            summary.one_line_summary,
+        ),
+    )
 
-    rows = cursor.fetchall()
+    conn.commit()
     conn.close()
+    return summary_id
 
-    return [_row_to_summary(row) for row in rows]
+
+def get_todays_summaries() -> list[Summary]:
+    """Get all summaries for emails received today."""
+    return get_summaries_for_date(date.today().isoformat())
 
 
 def get_summaries_by_email_ids(email_ids: list[int]) -> list[Summary]:
@@ -250,12 +352,17 @@ def get_summaries_by_email_ids(email_ids: list[int]) -> list[Summary]:
     conn = get_connection()
     cursor = conn.cursor()
 
-    placeholders = ",".join("?" for _ in email_ids)
-    cursor.execute("""
-        SELECT s.* FROM summaries s
-        WHERE s.email_id IN ({})
-        ORDER BY s.importance_score DESC
-    """.format(placeholders), email_ids)
+    if IS_POSTGRES:
+        cursor.execute(
+            "SELECT s.* FROM summaries s WHERE s.email_id = ANY(%s) ORDER BY s.importance_score DESC",
+            (list(email_ids),),
+        )
+    else:
+        placeholders = ",".join("?" for _ in email_ids)
+        cursor.execute(
+            f"SELECT s.* FROM summaries s WHERE s.email_id IN ({placeholders}) ORDER BY s.importance_score DESC",
+            email_ids,
+        )
 
     rows = cursor.fetchall()
     conn.close()
@@ -268,12 +375,16 @@ def get_summaries_for_date(target_date: str) -> list[Summary]:
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT s.* FROM summaries s
-        JOIN emails e ON s.email_id = e.id
-        WHERE date(e.received_at) = ?
-        ORDER BY s.importance_score DESC
-    """, (target_date,))
+    date_expr = _date_cast("e.received_at")
+    cursor.execute(
+        _q(f"""
+            SELECT s.* FROM summaries s
+            JOIN emails e ON s.email_id = e.id
+            WHERE {date_expr} = ?
+            ORDER BY s.importance_score DESC
+        """),
+        (target_date,),
+    )
 
     rows = cursor.fetchall()
     conn.close()
@@ -281,8 +392,7 @@ def get_summaries_for_date(target_date: str) -> list[Summary]:
     return [_row_to_summary(row) for row in rows]
 
 
-def _row_to_summary(row: sqlite3.Row) -> Summary:
-    """Convert a database row to a Summary object."""
+def _row_to_summary(row) -> Summary:
     return Summary(
         id=row["id"],
         email_id=row["email_id"],
@@ -291,27 +401,32 @@ def _row_to_summary(row: sqlite3.Row) -> Summary:
         topic_tags=json.loads(row["topic_tags"]),
         notable_links=json.loads(row["notable_links"]),
         importance_score=row["importance_score"],
-        one_line_summary=row["one_line_summary"]
+        one_line_summary=row["one_line_summary"],
     )
 
+
+# ---------------------------------------------------------------------------
+# Cluster helpers
+# ---------------------------------------------------------------------------
 
 def save_cluster(cluster: Cluster) -> int:
     """Save a cluster and return its ID."""
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
-        INSERT INTO clusters (digest_date, cluster_name, summary, email_ids, source_count)
-        VALUES (?, ?, ?, ?, ?)
-    """, (
-        cluster.digest_date,
-        cluster.cluster_name,
-        cluster.summary,
-        json.dumps(cluster.email_ids),
-        cluster.source_count
-    ))
+    cluster_id = _insert_and_get_id(
+        cursor,
+        """INSERT INTO clusters (digest_date, cluster_name, summary, email_ids, source_count)
+           VALUES (?, ?, ?, ?, ?)""",
+        (
+            cluster.digest_date,
+            cluster.cluster_name,
+            cluster.summary,
+            json.dumps(cluster.email_ids),
+            cluster.source_count,
+        ),
+    )
 
-    cluster_id = cursor.lastrowid
     conn.commit()
     conn.close()
     return cluster_id
@@ -319,8 +434,7 @@ def save_cluster(cluster: Cluster) -> int:
 
 def get_todays_clusters() -> list[Cluster]:
     """Get all clusters for today's digest."""
-    today = date.today().isoformat()
-    return get_clusters_for_date(today)
+    return get_clusters_for_date(date.today().isoformat())
 
 
 def get_clusters_for_date(target_date: str) -> list[Cluster]:
@@ -328,11 +442,10 @@ def get_clusters_for_date(target_date: str) -> list[Cluster]:
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
-        SELECT * FROM clusters
-        WHERE digest_date = ?
-        ORDER BY source_count DESC
-    """, (target_date,))
+    cursor.execute(
+        _q("SELECT * FROM clusters WHERE digest_date = ? ORDER BY source_count DESC"),
+        (target_date,),
+    )
 
     rows = cursor.fetchall()
     conn.close()
@@ -340,30 +453,29 @@ def get_clusters_for_date(target_date: str) -> list[Cluster]:
     return [_row_to_cluster(row) for row in rows]
 
 
-def _row_to_cluster(row: sqlite3.Row) -> Cluster:
-    """Convert a database row to a Cluster object."""
+def _row_to_cluster(row) -> Cluster:
     return Cluster(
         id=row["id"],
         digest_date=row["digest_date"],
         cluster_name=row["cluster_name"],
         summary=row["summary"],
         email_ids=json.loads(row["email_ids"]),
-        source_count=row["source_count"]
+        source_count=row["source_count"],
     )
 
 
-# --- Subscription helpers ---
+# ---------------------------------------------------------------------------
+# Subscription helpers
+# ---------------------------------------------------------------------------
 
-
-def _row_to_subscription(row: sqlite3.Row) -> Subscription:
-    """Convert a database row to a Subscription object."""
+def _row_to_subscription(row) -> Subscription:
     return Subscription(
         id=row["id"],
         user_id=row["user_id"],
         sender_email=row["sender_email"],
         sender_name=row["sender_name"],
         is_active=bool(row["is_active"]),
-        created_at=datetime.fromisoformat(row["created_at"]) if row["created_at"] else None
+        created_at=_parse_dt(row["created_at"]),
     )
 
 
@@ -373,8 +485,8 @@ def get_active_subscriptions(user_id: int = 1) -> list[Subscription]:
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT * FROM subscriptions WHERE user_id = ? AND is_active = 1 ORDER BY sender_name",
-        (user_id,)
+        _q("SELECT * FROM subscriptions WHERE user_id = ? AND is_active = 1 ORDER BY sender_name"),
+        (user_id,),
     )
     rows = cursor.fetchall()
     conn.close()
@@ -388,8 +500,8 @@ def get_all_subscriptions(user_id: int = 1) -> list[Subscription]:
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT * FROM subscriptions WHERE user_id = ? ORDER BY is_active DESC, sender_name",
-        (user_id,)
+        _q("SELECT * FROM subscriptions WHERE user_id = ? ORDER BY is_active DESC, sender_name"),
+        (user_id,),
     )
     rows = cursor.fetchall()
     conn.close()
@@ -402,26 +514,24 @@ def add_subscription(sender_email: str, sender_name: str, user_id: int = 1) -> i
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Check if subscription already exists
     cursor.execute(
-        "SELECT id, is_active FROM subscriptions WHERE user_id = ? AND sender_email = ?",
-        (user_id, sender_email)
+        _q("SELECT id, is_active FROM subscriptions WHERE user_id = ? AND sender_email = ?"),
+        (user_id, sender_email),
     )
     row = cursor.fetchone()
 
     if row:
-        # Reactivate if inactive, update name either way
         cursor.execute(
-            "UPDATE subscriptions SET is_active = 1, sender_name = ? WHERE id = ?",
-            (sender_name, row["id"])
+            _q("UPDATE subscriptions SET is_active = 1, sender_name = ? WHERE id = ?"),
+            (sender_name, row["id"]),
         )
         sub_id = row["id"]
     else:
-        cursor.execute(
+        sub_id = _insert_and_get_id(
+            cursor,
             "INSERT INTO subscriptions (user_id, sender_email, sender_name) VALUES (?, ?, ?)",
-            (user_id, sender_email, sender_name)
+            (user_id, sender_email, sender_name),
         )
-        sub_id = cursor.lastrowid
 
     conn.commit()
     conn.close()
@@ -434,8 +544,8 @@ def deactivate_subscription(sender_email: str, user_id: int = 1) -> bool:
     cursor = conn.cursor()
 
     cursor.execute(
-        "UPDATE subscriptions SET is_active = 0 WHERE user_id = ? AND sender_email = ? AND is_active = 1",
-        (user_id, sender_email)
+        _q("UPDATE subscriptions SET is_active = 0 WHERE user_id = ? AND sender_email = ? AND is_active = 1"),
+        (user_id, sender_email),
     )
     updated = cursor.rowcount > 0
 
@@ -450,8 +560,8 @@ def is_subscribed(sender_email: str, user_id: int = 1) -> bool:
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT 1 FROM subscriptions WHERE user_id = ? AND sender_email = ? AND is_active = 1",
-        (user_id, sender_email)
+        _q("SELECT 1 FROM subscriptions WHERE user_id = ? AND sender_email = ? AND is_active = 1"),
+        (user_id, sender_email),
     )
     row = cursor.fetchone()
     conn.close()
@@ -464,7 +574,7 @@ def update_subscription_status(subscription_id: int, is_active: bool) -> bool:
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE subscriptions SET is_active = ? WHERE id = ?",
+        _q("UPDATE subscriptions SET is_active = ? WHERE id = ?"),
         (1 if is_active else 0, subscription_id),
     )
     updated = cursor.rowcount > 0
@@ -479,8 +589,8 @@ def get_subscribed_sender_emails(user_id: int = 1) -> set[str]:
     cursor = conn.cursor()
 
     cursor.execute(
-        "SELECT sender_email FROM subscriptions WHERE user_id = ? AND is_active = 1",
-        (user_id,)
+        _q("SELECT sender_email FROM subscriptions WHERE user_id = ? AND is_active = 1"),
+        (user_id,),
     )
     rows = cursor.fetchall()
     conn.close()
@@ -488,8 +598,9 @@ def get_subscribed_sender_emails(user_id: int = 1) -> set[str]:
     return {row["sender_email"] for row in rows}
 
 
-# --- Digest helpers ---
-
+# ---------------------------------------------------------------------------
+# Digest helpers
+# ---------------------------------------------------------------------------
 
 def save_digest(
     user_email: str,
@@ -502,13 +613,13 @@ def save_digest(
     """Save a generated digest and return its ID."""
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute(
+    digest_id = _insert_and_get_id(
+        cursor,
         """INSERT INTO digests
            (user_email, digest_date, subject, html_content, themes_count, newsletters_count)
            VALUES (?, ?, ?, ?, ?, ?)""",
         (user_email, digest_date, subject, html_content, themes_count, newsletters_count),
     )
-    digest_id = cursor.lastrowid
     conn.commit()
     conn.close()
     return digest_id
@@ -519,11 +630,11 @@ def get_digests_for_user(user_email: str, limit: int = 30) -> list:
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        """SELECT id, user_email, digest_date, subject, themes_count, newsletters_count, created_at
+        _q("""SELECT id, user_email, digest_date, subject, themes_count, newsletters_count, created_at
            FROM digests
            WHERE user_email = ?
            ORDER BY digest_date DESC
-           LIMIT ?""",
+           LIMIT ?"""),
         (user_email, limit),
     )
     rows = cursor.fetchall()
@@ -535,7 +646,7 @@ def get_digest_by_id(digest_id: int) -> Optional[dict]:
     """Return a single digest (including html_content) by its ID."""
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM digests WHERE id = ?", (digest_id,))
+    cursor.execute(_q("SELECT * FROM digests WHERE id = ?"), (digest_id,))
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None

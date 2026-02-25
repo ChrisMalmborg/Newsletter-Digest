@@ -12,7 +12,6 @@ Usage:
 """
 import argparse
 import logging
-import sqlite3
 import sys
 from datetime import date
 from pathlib import Path
@@ -24,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.config import DATA_DIR, CONFIG_DIR, DIGEST_TO_ADDRESS
 from src.database import (
+    IntegrityError,
     init_db,
     get_connection,
     get_or_create_newsletter,
@@ -239,7 +239,7 @@ def run(dry_run=False, hours=24, force=False, user=None):
             try:
                 email_id = save_email(email_obj)
                 logger.info("  Saved to database (id=%d)", email_id)
-            except sqlite3.IntegrityError:
+            except IntegrityError:
                 # Race condition: another process inserted it
                 existing = email_already_stored(msg_id)
                 if existing:
@@ -281,7 +281,7 @@ def run(dry_run=False, hours=24, force=False, user=None):
         )
         try:
             save_summary(summary_obj)
-        except sqlite3.IntegrityError:
+        except IntegrityError:
             # Summary already exists for this email_id (e.g. --force re-run)
             logger.info("  Summary already exists for email %d, skipping save", email_id)
 

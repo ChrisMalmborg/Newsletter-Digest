@@ -3,81 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Newsletters</title>
+    <title>Manage Newsletters</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            max-width: 700px;
+            max-width: 680px;
             margin: 40px auto;
             padding: 0 20px;
             color: #333;
+            background: #f8f9fa;
         }
-        h1 { margin-bottom: 4px; }
-        p.subtitle { color: #666; margin-bottom: 24px; }
-        .newsletter {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 14px 18px;
-            margin-bottom: 12px;
+        h1 {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+        p.subtitle {
+            color: #666;
+            margin-bottom: 32px;
+        }
+        .section {
+            margin-bottom: 36px;
+        }
+        .section h2 {
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .section-note {
+            font-size: 13px;
+            color: #999;
+            margin: 0 0 12px;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 8px;
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             gap: 12px;
         }
-        .newsletter input[type="checkbox"] { margin-top: 4px; }
-        .newsletter .info { flex: 1; }
-        .newsletter .subject { font-weight: 600; }
-        .newsletter .from { font-size: 14px; color: #555; }
-        .newsletter .date { font-size: 13px; color: #888; }
-        .newsletter .snippet { font-size: 13px; color: #666; margin-top: 4px; }
-        .empty { color: #888; margin-top: 40px; }
-        a.back { color: #4285f4; text-decoration: none; }
+        .card input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            cursor: pointer;
+            accent-color: #4285f4;
+        }
+        .card .info {
+            flex: 1;
+            min-width: 0;
+        }
+        .card .sender-name {
+            font-weight: 600;
+            font-size: 15px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card .sender-email {
+            font-size: 13px;
+            color: #666;
+            margin-top: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .card .email-count {
+            font-size: 12px;
+            color: #999;
+            margin-top: 3px;
+        }
+        .btn-dismiss {
+            background: none;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 12px;
+            color: #666;
+            cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .btn-dismiss:hover {
+            background: #f3f4f6;
+            color: #333;
+        }
+        .empty {
+            color: #aaa;
+            font-size: 14px;
+            padding: 16px 0 4px;
+        }
+        .divider {
+            border: none;
+            border-top: 1px solid #e5e7eb;
+            margin: 32px 0;
+        }
         .actions {
-            margin-top: 20px;
             display: flex;
             align-items: center;
             gap: 16px;
+            margin-top: 8px;
         }
         .btn-save {
             background: #4285f4;
             color: #fff;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             padding: 10px 24px;
             font-size: 15px;
+            font-weight: 500;
             cursor: pointer;
         }
         .btn-save:hover { background: #3367d6; }
+        a.cancel {
+            color: #666;
+            font-size: 14px;
+            text-decoration: none;
+        }
+        a.cancel:hover { color: #333; }
     </style>
 </head>
 <body>
-    <h1>Detected Newsletters</h1>
-    <p class="subtitle">Found {{ newsletters | length }} unique newsletter{{ "s" if newsletters | length != 1 else "" }} in your recent inbox.</p>
+    <h1>Manage Newsletters</h1>
+    <p class="subtitle">Review your subscriptions and add new ones from your inbox.</p>
 
-    {% if newsletters %}
-    <form method="post" action="/newsletters/save">
-        {% for nl in newsletters %}
-        <div class="newsletter">
-            <input type="checkbox" name="selected" value="{{ nl.sender_email }}" checked>
-            <input type="hidden" name="sender_name_{{ nl.sender_email }}" value="{{ nl.sender_name }}">
+    {# The main save form — inputs use form="main-form" so they work outside this element #}
+    <form id="main-form" method="post" action="/newsletters/save"></form>
+
+    {# ── Section 1: Your Subscriptions ── #}
+    <div class="section">
+        <h2>Your Subscriptions</h2>
+        {% if subscriptions %}
+        <p class="section-note">Uncheck any you'd like to remove, then save.</p>
+        {% for sub in subscriptions %}
+        <div class="card">
+            <input form="main-form" type="checkbox" name="keep_sub" value="{{ sub.id }}" checked>
+            <input form="main-form" type="hidden" name="all_sub_ids" value="{{ sub.id }}">
             <div class="info">
-                <div class="subject">{{ nl.subject }}</div>
-                <div class="from">{{ nl.from }}{% if nl.email_count and nl.email_count > 1 %} &middot; {{ nl.email_count }} emails{% endif %}</div>
-                <div class="date">{{ nl.date }}</div>
-                <div class="snippet">{{ nl.snippet }}...</div>
+                <div class="sender-name">{{ sub.sender_name }}</div>
+                <div class="sender-email">{{ sub.sender_email }}</div>
             </div>
         </div>
         {% endfor %}
-        <div class="actions">
-            <button type="submit" class="btn-save">Save Selections</button>
-            <a class="back" href="/">Cancel</a>
-        </div>
-    </form>
-    {% else %}
-    <p class="empty">No newsletters detected in your recent emails.</p>
-    {% endif %}
+        {% else %}
+        <p class="empty">No subscriptions yet. Add some from the detected list below.</p>
+        {% endif %}
+    </div>
 
-    {% if not newsletters %}
-    <p style="margin-top: 24px;"><a class="back" href="/">Back to home</a></p>
-    {% endif %}
+    <hr class="divider">
+
+    {# ── Section 2: Detected Newsletters ── #}
+    <div class="section">
+        <h2>Detected in Inbox</h2>
+        {% if detected %}
+        <p class="section-note">Check any you'd like to subscribe to, then save. Dismiss to hide permanently.</p>
+        {% for nl in detected %}
+        <div class="card">
+            <input form="main-form" type="checkbox" name="add_detected" value="{{ nl.sender_email }}">
+            <input form="main-form" type="hidden" name="sender_name_{{ nl.sender_email }}" value="{{ nl.sender_name }}">
+            <div class="info">
+                <div class="sender-name">{{ nl.sender_name }}</div>
+                <div class="sender-email">{{ nl.sender_email }}</div>
+                {% if nl.email_count %}
+                <div class="email-count">{{ nl.email_count }} email{{ "s" if nl.email_count != 1 else "" }} found</div>
+                {% endif %}
+            </div>
+            <form method="post" action="/newsletters/dismiss">
+                <input type="hidden" name="sender_email" value="{{ nl.sender_email }}">
+                <button type="submit" class="btn-dismiss">Dismiss</button>
+            </form>
+        </div>
+        {% endfor %}
+        {% else %}
+        <p class="empty">No new newsletters detected in your recent inbox.</p>
+        {% endif %}
+    </div>
+
+    <div class="actions">
+        <button form="main-form" type="submit" class="btn-save">Save Changes</button>
+        <a class="cancel" href="/dashboard">Cancel</a>
+    </div>
 </body>
 </html>

@@ -203,6 +203,17 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON subscriptions(user_id, is_active)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_digests_user ON digests(user_email, digest_date)")
 
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS dismissed_newsletters (
+            {pk},
+            user_id INTEGER NOT NULL,
+            sender_email TEXT NOT NULL,
+            dismissed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, sender_email)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_dismissed_user ON dismissed_newsletters(user_id)")
+
     conn.commit()
     conn.close()
 
@@ -595,6 +606,40 @@ def get_subscribed_sender_emails(user_id: int = 1) -> set[str]:
     rows = cursor.fetchall()
     conn.close()
 
+    return {row["sender_email"] for row in rows}
+
+
+# ---------------------------------------------------------------------------
+# Dismissed newsletter helpers
+# ---------------------------------------------------------------------------
+
+def dismiss_newsletter(sender_email: str, user_id: int = 1) -> None:
+    """Mark a detected newsletter as dismissed so it won't appear again."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    try:
+        _insert_and_get_id(
+            cursor,
+            "INSERT INTO dismissed_newsletters (user_id, sender_email) VALUES (?, ?)",
+            (user_id, sender_email),
+        )
+        conn.commit()
+    except IntegrityError:
+        conn.rollback()
+    finally:
+        conn.close()
+
+
+def get_dismissed_sender_emails(user_id: int = 1) -> set[str]:
+    """Return the set of dismissed sender emails for a user."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        _q("SELECT sender_email FROM dismissed_newsletters WHERE user_id = ?"),
+        (user_id,),
+    )
+    rows = cursor.fetchall()
+    conn.close()
     return {row["sender_email"] for row in rows}
 
 

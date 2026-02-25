@@ -225,7 +225,7 @@ def _newsletter_score(email: Dict) -> int:
     return score
 
 
-def detect_newsletters(emails: List[Dict]) -> List[Dict]:
+def detect_newsletters(emails: List[Dict], user_email: Optional[str] = None) -> List[Dict]:
     """Identify likely newsletters, deduplicated by sender email.
 
     Heuristics (combined score >= 2 to qualify):
@@ -236,19 +236,32 @@ def detect_newsletters(emails: List[Dict]) -> List[Dict]:
     Bonus: multiple emails from the same sender in the batch (+1 each extra)
 
     Transactional emails (welcome, verify, receipts, etc.) are excluded.
+    Self-emails and Newsletter Digest emails are always excluded.
     """
+    user_email_lower = user_email.lower() if user_email else None
+
     # --- Phase 1: score each email, count sender frequency ---
     sender_frequency: Dict[str, int] = {}
     scored_emails: List[tuple] = []  # (email, sender_email, sender_name, score)
 
     for email in emails:
+        sender_email_addr, sender_name = _parse_sender(email["from"])
+
+        # Skip emails from the user's own address
+        if user_email_lower and sender_email_addr.lower() == user_email_lower:
+            continue
+
+        # Skip Newsletter Digest emails (the app's own output)
+        subject = email.get("subject", "")
+        if re.search(r"newsletter\s+digest", subject, re.IGNORECASE):
+            continue
+
         if _is_transactional(email):
             continue
 
-        sender_email, sender_name = _parse_sender(email["from"])
-        sender_frequency[sender_email] = sender_frequency.get(sender_email, 0) + 1
+        sender_frequency[sender_email_addr] = sender_frequency.get(sender_email_addr, 0) + 1
         score = _newsletter_score(email)
-        scored_emails.append((email, sender_email, sender_name, score))
+        scored_emails.append((email, sender_email_addr, sender_name, score))
 
     # --- Phase 2: boost score for repeated senders, deduplicate ---
     seen_senders: Dict[str, Dict] = {}  # sender_email -> best candidate dict

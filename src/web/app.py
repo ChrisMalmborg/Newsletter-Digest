@@ -14,10 +14,13 @@ from src.database import (
     add_subscription,
     count_all_digests,
     deactivate_subscription,
+    dismiss_newsletter,
+    get_active_subscriptions,
     get_admin_user_stats,
     get_all_subscriptions,
     get_digest_by_id,
     get_digests_for_user,
+    get_dismissed_sender_emails,
     get_user_by_id,
     init_db,
     update_subscription_status,
@@ -102,21 +105,43 @@ async def auth_callback(request: Request):
 
 @app.get("/newsletters", response_class=HTMLResponse)
 async def newsletters(request: Request):
-    """Show detected newsletters from the user's inbox."""
+    """Show subscribed and detected newsletters."""
     creds_data = request.session.get("google_creds")
     if not creds_data:
         return RedirectResponse("/?error=Please+connect+your+Gmail+account+first")
 
-    emails = fetch_recent_emails(creds_data, max_results=50)
-    detected = detect_newsletters(emails)
+    user_email = request.session.get("user_email")
+    if not user_email:
+        user_email = get_user_email(creds_data)
+        request.session["user_email"] = user_email
+
+    user_id = get_user_id_by_email(user_email) or 1
+
+    # Current active subscriptions
+    subscriptions = get_active_subscriptions(user_id)
+    subscribed_emails = {sub.sender_email for sub in subscriptions}
+
+    # Dismissed newsletters (hidden from detected list)
+    dismissed_emails = get_dismissed_sender_emails(user_id)
+
+    # Detect newsletters from inbox, filtering self-emails and digest subjects
+    emails = fetch_recent_emails(creds_data, max_results=100)
+    all_detected = detect_newsletters(emails, user_email=user_email)
+
+    # Only show detected newsletters not already subscribed and not dismissed
+    detected = [
+        nl for nl in all_detected
+        if nl["sender_email"] not in subscribed_emails
+        and nl["sender_email"] not in dismissed_emails
+    ]
 
     template = jinja_env.get_template("newsletters.html")
-    return template.render(newsletters=detected)
+    return template.render(subscriptions=subscriptions, detected=detected)
 
 
 @app.post("/newsletters/save")
 async def save_newsletters(request: Request):
-    """Save selected newsletter subscriptions to the database."""
+    """Save newsletter subscription changes."""
     creds_data = request.session.get("google_creds")
     if not creds_data:
         return RedirectResponse("/?error=Please+connect+your+Gmail+account+first", status_code=303)
@@ -126,27 +151,50 @@ async def save_newsletters(request: Request):
         user_email = get_user_email(creds_data)
         request.session["user_email"] = user_email
 
+    user_id = get_user_id_by_email(user_email) or 1
+
     form_data = await request.form()
-    selected_emails = form_data.getlist("selected")
-    # sender_name fields are keyed by sender email
-    sender_names = {k.removeprefix("sender_name_"): v for k, v in form_data.items() if k.startswith("sender_name_")}
 
-    # Resolve user_id from the users table (fall back to 1 for legacy users)
-    user_id = get_user_id_by_email(user_email) if user_email else None
-    if user_id is None:
-        user_id = 1
+    # Existing subscriptions: all_sub_ids lists every subscription shown on page;
+    # keep_sub lists only the checked ones. Unchecked → deactivate.
+    all_sub_ids = set(form_data.getlist("all_sub_ids"))
+    kept_sub_ids = set(form_data.getlist("keep_sub"))
+    for sub_id_str in all_sub_ids:
+        if sub_id_str not in kept_sub_ids:
+            update_subscription_status(int(sub_id_str), False)
 
-    # Deduplicate by sender email so we only create one subscription per sender
-    unique_senders = dict.fromkeys(selected_emails)
-
-    count = 0
-    for sender_email in unique_senders:
+    # Detected newsletters: checked → add subscription
+    sender_names = {
+        k.removeprefix("sender_name_"): v
+        for k, v in form_data.items()
+        if k.startswith("sender_name_")
+    }
+    added = 0
+    for sender_email in dict.fromkeys(form_data.getlist("add_detected")):
         sender_name = sender_names.get(sender_email, sender_email)
         add_subscription(sender_email=sender_email, sender_name=sender_name, user_id=user_id)
-        count += 1
+        added += 1
 
-    msg = quote("Saved {} newsletter subscription{}!".format(count, "s" if count != 1 else ""))
+    msg = quote("Subscriptions updated!")
     return RedirectResponse("/dashboard?success={}".format(msg), status_code=303)
+
+
+@app.post("/newsletters/dismiss")
+async def dismiss_newsletter_route(request: Request):
+    """Dismiss a detected newsletter so it no longer appears in the list."""
+    creds_data = request.session.get("google_creds")
+    if not creds_data:
+        return RedirectResponse("/?error=Please+connect+your+Gmail+account+first", status_code=303)
+
+    user_email = request.session.get("user_email")
+    user_id = (get_user_id_by_email(user_email) or 1) if user_email else 1
+
+    form_data = await request.form()
+    sender_email = form_data.get("sender_email")
+    if sender_email:
+        dismiss_newsletter(sender_email, user_id)
+
+    return RedirectResponse("/newsletters", status_code=303)
 
 
 # ---------------------------------------------------------------------------

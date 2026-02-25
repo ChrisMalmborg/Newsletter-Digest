@@ -3,53 +3,321 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Newsletter Digest</title>
+    <title>Newsletter Digest — Your newsletters, summarized.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        blue: {
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            max-width: 600px;
-            margin: 80px auto;
-            padding: 0 20px;
-            color: #333;
-            text-align: center;
+        html { scroll-behavior: smooth; }
+        .hero-bg {
+            background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37,99,235,0.08) 0%, transparent 70%);
         }
-        h1 { margin-bottom: 8px; }
-        p.subtitle { color: #666; margin-bottom: 40px; }
-        a.btn {
-            display: inline-block;
-            padding: 12px 28px;
-            background: #4285f4;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 6px;
-            font-size: 16px;
+        .feature-card {
+            transition: box-shadow 0.2s ease, transform 0.2s ease;
         }
-        a.btn:hover { background: #3367d6; }
-        .error {
-            background: #fee;
-            color: #c00;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-        .success {
-            background: #efe;
-            color: #060;
-            padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 20px;
+        .feature-card:hover {
+            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
         }
     </style>
 </head>
-<body>
-    <h1>Newsletter Digest</h1>
-    <p class="subtitle">Detect and manage your newsletter subscriptions.</p>
+<body class="font-sans bg-white text-gray-900 antialiased">
+
+    <!-- Flash messages -->
     {% if error %}
-    <div class="error">{{ error }}</div>
+    <div class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-50 border border-red-200 text-red-700 px-5 py-3 rounded-lg shadow text-sm">
+        {{ error }}
+    </div>
     {% endif %}
     {% if success %}
-    <div class="success">{{ success }}</div>
+    <div class="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-green-50 border border-green-200 text-green-700 px-5 py-3 rounded-lg shadow text-sm">
+        {{ success }}
+    </div>
     {% endif %}
-    <a class="btn" href="/auth/google">Connect with Gmail</a>
+
+    <!-- ── Nav ── -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-gray-100">
+        <nav class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="/" class="text-lg font-semibold tracking-tight text-gray-900">
+                Newsletter Digest
+            </a>
+            <div class="flex items-center gap-5">
+                <a href="/auth/google" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                    Sign In
+                </a>
+                <a href="/auth/google"
+                   class="text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    Get Started
+                </a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+
+        <!-- ── Hero ── -->
+        <section class="hero-bg pt-24 pb-28 px-6 text-center">
+            <div class="max-w-3xl mx-auto">
+                <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-full mb-8">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block"></span>
+                    Powered by Claude AI
+                </div>
+                <h1 class="text-5xl sm:text-6xl font-bold tracking-tight text-gray-900 leading-tight mb-6">
+                    Your newsletters,<br>summarized.
+                </h1>
+                <p class="text-xl text-gray-500 max-w-xl mx-auto mb-10 leading-relaxed">
+                    AI reads your newsletters so you don't have to. Get a single daily digest with the insights that matter.
+                </p>
+                <a href="/auth/google"
+                   class="inline-flex items-center gap-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-7 py-3.5 rounded-xl text-base transition-colors shadow-sm">
+                    <!-- Google icon -->
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+                        <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" opacity=".7"/>
+                        <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" opacity=".5"/>
+                        <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" opacity=".6"/>
+                    </svg>
+                    Connect Gmail — It's Free
+                </a>
+                <p class="mt-4 text-sm text-gray-400">
+                    Read-only access. We never send emails on your behalf.
+                </p>
+            </div>
+        </section>
+
+        <!-- ── How It Works ── -->
+        <section class="py-24 px-6 bg-gray-50 border-y border-gray-100">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl font-bold tracking-tight text-gray-900 mb-3">Three steps to inbox clarity</h2>
+                    <p class="text-gray-500 text-lg">Set up once, benefit every morning.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+                    <!-- Step 1 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+                        <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-5">
+                            <!-- Link icon -->
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                            </svg>
+                        </div>
+                        <div class="text-xs font-semibold text-blue-600 uppercase tracking-widest mb-2">Step 1</div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Connect Gmail</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">Securely link your inbox with read-only OAuth — no passwords, no risk.</p>
+                    </div>
+
+                    <!-- Step 2 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+                        <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-5">
+                            <!-- Check list icon -->
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                            </svg>
+                        </div>
+                        <div class="text-xs font-semibold text-blue-600 uppercase tracking-widest mb-2">Step 2</div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Pick newsletters</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">Select which newsletters to include in your digest from your existing subscriptions.</p>
+                    </div>
+
+                    <!-- Step 3 -->
+                    <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+                        <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-5">
+                            <!-- Sparkle / AI icon -->
+                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/>
+                            </svg>
+                        </div>
+                        <div class="text-xs font-semibold text-blue-600 uppercase tracking-widest mb-2">Step 3</div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Get your digest</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">Receive one AI-powered summary every morning with every insight, none of the noise.</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Features ── -->
+        <section class="py-24 px-6">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-3xl font-bold tracking-tight text-gray-900 mb-3">More signal, less noise</h2>
+                    <p class="text-gray-500 text-lg">Everything you need to stay informed in minutes, not hours.</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                    <div class="feature-card bg-white border border-gray-100 rounded-2xl p-7 shadow-sm">
+                        <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-5">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1.5">AI Summaries</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">Each newsletter condensed to key takeaways — without losing context or nuance.</p>
+                    </div>
+
+                    <div class="feature-card bg-white border border-gray-100 rounded-2xl p-7 shadow-sm">
+                        <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-5">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1.5">Cross-Newsletter Themes</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">See connections and trends that emerge across all your sources in one view.</p>
+                    </div>
+
+                    <div class="feature-card bg-white border border-gray-100 rounded-2xl p-7 shadow-sm">
+                        <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-5">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1.5">Top Story</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">The most important insight from your entire inbox, highlighted front and center.</p>
+                    </div>
+
+                    <div class="feature-card bg-white border border-gray-100 rounded-2xl p-7 shadow-sm">
+                        <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-5">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1.5">Daily Delivery</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">One email, every morning at 11am. Your reading routine, simplified.</p>
+                    </div>
+
+                    <div class="feature-card bg-white border border-gray-100 rounded-2xl p-7 shadow-sm">
+                        <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-5">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1.5">Privacy First</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">Read-only Gmail access via OAuth. We never store your email content or send on your behalf.</p>
+                    </div>
+
+                    <div class="feature-card bg-white border border-gray-100 rounded-2xl p-7 shadow-sm">
+                        <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-5">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
+                            </svg>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mb-1.5">You're in Control</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">Choose exactly which newsletters to include. Change your selections anytime.</p>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Sample Output ── -->
+        <section class="py-24 px-6 bg-gray-50 border-y border-gray-100">
+            <div class="max-w-4xl mx-auto text-center">
+                <h2 class="text-3xl font-bold tracking-tight text-gray-900 mb-3">See what you'll get</h2>
+                <p class="text-gray-500 text-lg mb-12">A real digest from The Rundown AI, Axios Pro Rata, and more.</p>
+
+                <!-- Digest preview mock -->
+                <div class="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden text-left">
+                    <!-- Email header bar -->
+                    <div class="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center gap-3">
+                        <div class="flex gap-1.5">
+                            <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                            <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
+                            <span class="w-3 h-3 rounded-full bg-green-400"></span>
+                        </div>
+                        <div class="flex-1 bg-white border border-gray-200 rounded-md px-3 py-1 text-xs text-gray-400 ml-2">
+                            Your Morning Newsletter Digest — Monday, February 24
+                        </div>
+                    </div>
+                    <!-- Email body -->
+                    <div class="px-8 py-8">
+                        <div class="flex items-center gap-2 mb-6">
+                            <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">ND</div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">Newsletter Digest</p>
+                                <p class="text-xs text-gray-400">digest@newsletterdigest.app → you</p>
+                            </div>
+                        </div>
+
+                        <!-- Top story -->
+                        <div class="bg-blue-50 border border-blue-100 rounded-xl p-5 mb-6">
+                            <div class="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-2">⭐ Top Story</div>
+                            <p class="text-sm font-semibold text-gray-900 mb-1">AI agents are reshaping enterprise software procurement</p>
+                            <p class="text-sm text-gray-600 leading-relaxed">Multiple newsletters flagged a shift: enterprise buyers are now evaluating AI agent platforms before traditional SaaS. Deal sizes are larger but sales cycles are 40% longer.</p>
+                        </div>
+
+                        <!-- Newsletter summaries -->
+                        <div class="space-y-5">
+                            <div class="border-l-2 border-gray-200 pl-4">
+                                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">The Rundown AI</div>
+                                <p class="text-sm text-gray-700 leading-relaxed">OpenAI launched a new memory feature for ChatGPT, allowing persistent context across sessions. Anthropic announced expanded Claude API access. Google DeepMind published research on multi-modal reasoning.</p>
+                            </div>
+                            <div class="border-l-2 border-gray-200 pl-4">
+                                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Axios Pro Rata</div>
+                                <p class="text-sm text-gray-700 leading-relaxed">VC funding in AI startups hit $4.2B last week. Notable rounds: $200M Series C for an AI coding tool, $85M for an AI-powered legal platform. Exits remain muted as IPO window stays narrow.</p>
+                            </div>
+                            <div class="border-l-2 border-gray-200 pl-4">
+                                <div class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Morning Brew</div>
+                                <p class="text-sm text-gray-700 leading-relaxed">Markets closed mixed with tech outperforming. The Fed signaled two cuts in 2025. Consumer confidence index rose for the third consecutive month, beating analyst expectations.</p>
+                            </div>
+                        </div>
+
+                        <!-- Theme callout -->
+                        <div class="mt-6 bg-gray-50 rounded-xl p-5 border border-gray-100">
+                            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Cross-Newsletter Theme</div>
+                            <p class="text-sm text-gray-700 leading-relaxed"><span class="font-medium">AI infrastructure spend</span> was mentioned across 3 of your newsletters today — a sign that capex cycles around GPU clusters are accelerating heading into Q2.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="mt-6 text-sm text-gray-400">Example output — actual digest reflects your newsletters and today's content.</p>
+            </div>
+        </section>
+
+        <!-- ── Final CTA ── -->
+        <section class="py-24 px-6 bg-blue-600">
+            <div class="max-w-2xl mx-auto text-center">
+                <h2 class="text-3xl font-bold text-white mb-4">Stop drowning in newsletters</h2>
+                <p class="text-blue-200 text-lg mb-10">Join others who get their daily digest in under two minutes.</p>
+                <a href="/auth/google"
+                   class="inline-flex items-center gap-2 bg-white hover:bg-gray-50 text-blue-600 font-semibold px-7 py-3.5 rounded-xl text-base transition-colors shadow-sm">
+                    Get Started Free
+                </a>
+                <p class="mt-4 text-blue-300 text-sm">No credit card required.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ── Footer ── -->
+    <footer class="border-t border-gray-100 bg-white py-8 px-6">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
+            <span>Built with <a href="https://anthropic.com" class="text-gray-500 hover:text-gray-700 transition-colors">Claude API</a></span>
+            <div class="flex items-center gap-6">
+                <a href="https://github.com/chrismalmborg/newsletter-digest" class="hover:text-gray-700 transition-colors">GitHub</a>
+                <a href="#" class="hover:text-gray-700 transition-colors">Privacy</a>
+            </div>
+        </div>
+    </footer>
+
 </body>
 </html>

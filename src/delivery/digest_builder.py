@@ -31,6 +31,7 @@ def build_digest(
     date_str = digest_date.strftime("%b %-d, %Y")
     newsletter_count = len(summaries)
     theme_count = len(theme_list)
+    day_greeting = "Happy {} \u26a1".format(digest_date.strftime("%A"))
 
     # Build subject line
     subject = "Your Newsletter Digest \u2014 {}".format(
@@ -56,6 +57,7 @@ def build_digest(
         subject=subject,
         digest_date=date_str,
         newsletter_count=newsletter_count,
+        day_greeting=day_greeting,
         digest_intro=digest_intro,
         top_story=top_story if top_story else None,
         clusters=theme_list,

@@ -14,42 +14,50 @@
 <!-- Main container -->
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0;">
 
-<!-- Header -->
-<tr><td style="padding: 32px 40px 28px 40px; border-bottom: 1px solid #e2e8f0;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-  <tr>
-    <td>
-      <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
-      <tr><td style="width: 32px; height: 3px; background-color: #2563eb; border-radius: 2px; font-size: 0; line-height: 0;">&nbsp;</td></tr>
-      </table>
-      <h1 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 700; color: #0f172a; letter-spacing: -0.3px;">Newsletter Digest</h1>
-      <p style="margin: 0; font-size: 13px; color: #94a3b8;">{{ digest_date }} &nbsp;&middot;&nbsp; {{ newsletter_count }} newsletter{{ "s" if newsletter_count != 1 else "" }}</p>
-    </td>
-  </tr>
-  </table>
+<!-- Blue Banner Header -->
+<tr><td style="background-color: #2563eb; border-radius: 12px 12px 0 0; padding: 28px 40px 24px 40px;">
+  <h1 style="margin: 0 0 5px 0; font-size: 26px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Newsletter Digest</h1>
+  <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.70); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Your daily AI &amp; tech briefing</p>
 </td></tr>
+
+<!-- Date / count strip -->
+<tr><td style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 10px 40px;">
+  <p style="margin: 0; font-size: 12px; color: #94a3b8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ digest_date }} &nbsp;&middot;&nbsp; {{ newsletter_count }} newsletter{{ "s" if newsletter_count != 1 else "" }}</p>
+</td></tr>
+
+{% if day_greeting %}
+<!-- Greeting -->
+<tr><td style="padding: 24px 40px 0 40px;">
+  <p style="margin: 0; font-size: 17px; font-weight: 700; color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ day_greeting }}</p>
+</td></tr>
+{% endif %}
 
 {% if digest_intro %}
 <!-- Intro -->
-<tr><td style="padding: 24px 40px 0 40px;">
-  <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #475569;">{{ digest_intro }}</p>
+<tr><td style="padding: 14px 40px 0 40px;">
+  <p style="margin: 0; font-size: 15px; line-height: 1.7; color: #475569; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ digest_intro }}</p>
 </td></tr>
 {% endif %}
 
 {% if top_story %}
 <!-- Top Story -->
 <tr><td style="padding: 28px 40px 0 40px;">
+  <!-- Section header with blue accent bar -->
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+  <tr>
+    <td style="width: 4px; background-color: #2563eb; border-radius: 2px; font-size: 0; line-height: 0;">&nbsp;</td>
+    <td style="padding-left: 10px;">
+      <span style="font-size: 11px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 1.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Your Top Story</span>
+    </td>
+  </tr>
+  </table>
+  <!-- Card -->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe;">
   <tr><td style="padding: 20px 24px;">
-    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom: 10px;">
-    <tr><td style="background-color: #2563eb; border-radius: 4px; padding: 3px 8px;">
-      <span style="font-size: 10px; font-weight: 700; color: #ffffff; letter-spacing: 1px; text-transform: uppercase; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Your Top Story</span>
-    </td></tr>
-    </table>
-    <h2 style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #0f172a; line-height: 1.4;">{{ top_story.name }}</h2>
-    <p style="margin: 0 0 14px 0; font-size: 14px; line-height: 1.65; color: #334155;">{{ top_story.why }}</p>
+    <h2 style="margin: 0 0 8px 0; font-size: 17px; font-weight: 700; color: #0f172a; line-height: 1.4; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ top_story.name }}</h2>
+    <p style="margin: 0 0 14px 0; font-size: 14px; line-height: 1.65; color: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ top_story.why }}</p>
     {% if top_story.sources %}
-    <p style="margin: 0; font-size: 11px; line-height: 1.6;">
+    <p style="margin: 0; font-size: 11px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
       {% for source in top_story.sources %}<span style="display: inline-block; background-color: #dbeafe; color: #1d4ed8; font-weight: 500; padding: 2px 9px; border-radius: 20px; margin: 0 5px 4px 0;">{{ source }}</span>{% endfor %}
     </p>
     {% endif %}
@@ -59,34 +67,38 @@
 {% endif %}
 
 {% if clusters %}
-<!-- Themes -->
+<!-- Trends -->
 <tr><td style="padding: 28px 40px 0 40px;">
+  <!-- Section header with blue accent bar -->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 18px;">
-  <tr><td style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Today's Trends</span>
-  </td></tr>
+  <tr>
+    <td style="width: 4px; background-color: #2563eb; border-radius: 2px; font-size: 0; line-height: 0; padding-bottom: 10px; vertical-align: top;">&nbsp;</td>
+    <td style="padding-left: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+      <span style="font-size: 11px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 1.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Today's Trends</span>
+    </td>
+  </tr>
   </table>
 
   {% for cluster in clusters %}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
   <tr><td>
-    <h3 style="margin: 0 0 6px 0; font-size: 15px; font-weight: 700; color: #0f172a; line-height: 1.35;">{{ cluster.name }}</h3>
-    <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.65; color: #334155;">{{ cluster.synthesis }}</p>
+    <h3 style="margin: 0 0 6px 0; font-size: 15px; font-weight: 700; color: #0f172a; line-height: 1.35; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ cluster.name }}</h3>
+    <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.65; color: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ cluster.synthesis }}</p>
     {% if cluster.cross_theme_note %}
-    <p style="margin: 0 0 10px 0; font-size: 13px; line-height: 1.55; color: #64748b; font-style: italic;">{{ cluster.cross_theme_note }}</p>
+    <p style="margin: 0 0 10px 0; font-size: 13px; line-height: 1.55; color: #64748b; font-style: italic; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ cluster.cross_theme_note }}</p>
     {% endif %}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
     <tr>
       <td>
         {% if cluster.sources %}
-        <p style="margin: 0; font-size: 11px; line-height: 1.6;">
+        <p style="margin: 0; font-size: 11px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
           {% for source in cluster.sources %}<span style="display: inline-block; background-color: #f8fafc; color: #64748b; font-weight: 500; padding: 2px 9px; border-radius: 20px; border: 1px solid #e2e8f0; margin: 0 5px 4px 0;">{{ source }}</span>{% endfor %}
         </p>
         {% endif %}
       </td>
       {% if cluster.read_more_url %}
       <td align="right" style="white-space: nowrap; vertical-align: middle;">
-        <a href="{{ cluster.read_more_url }}" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 500;">Read the original &rarr;</a>
+        <a href="{{ cluster.read_more_url }}" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Read the original &rarr;</a>
       </td>
       {% endif %}
     </tr>
@@ -97,7 +109,7 @@
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
   <tr><td style="padding: 18px 0;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-    <tr><td style="height: 1px; background-color: #f1f5f9; font-size: 0; line-height: 0;">&nbsp;</td></tr>
+    <tr><td style="height: 1px; background-color: #e8eef4; font-size: 0; line-height: 0;">&nbsp;</td></tr>
     </table>
   </td></tr>
   </table>
@@ -109,18 +121,22 @@
 {% if contradictions %}
 <!-- Different Takes -->
 <tr><td style="padding: 28px 40px 0 40px;">
+  <!-- Section header with blue accent bar -->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 18px;">
-  <tr><td style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
-    <span style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 1px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Different Takes</span>
-  </td></tr>
+  <tr>
+    <td style="width: 4px; background-color: #2563eb; border-radius: 2px; font-size: 0; line-height: 0; padding-bottom: 10px; vertical-align: top;">&nbsp;</td>
+    <td style="padding-left: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+      <span style="font-size: 11px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 1.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Different Takes</span>
+    </td>
+  </tr>
   </table>
 
   {% for item in contradictions %}
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
   <tr><td>
-    <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: #0f172a;">{{ item.topic }}</h3>
+    <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ item.topic }}</h3>
     {% for pos in item.positions %}
-    <p style="margin: 0 0 5px 0; font-size: 13px; line-height: 1.55; color: #475569;">
+    <p style="margin: 0 0 5px 0; font-size: 13px; line-height: 1.55; color: #475569; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
       <strong style="color: #0f172a;">{{ pos.source }}:</strong> {{ pos.position }}
     </p>
     {% endfor %}
@@ -130,7 +146,7 @@
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
   <tr><td style="padding: 14px 0;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-    <tr><td style="height: 1px; background-color: #f1f5f9; font-size: 0; line-height: 0;">&nbsp;</td></tr>
+    <tr><td style="height: 1px; background-color: #e8eef4; font-size: 0; line-height: 0;">&nbsp;</td></tr>
     </table>
   </td></tr>
   </table>
@@ -141,9 +157,9 @@
 
 <!-- Footer -->
 <tr><td style="padding: 28px 40px 32px 40px; border-top: 1px solid #e2e8f0; margin-top: 28px;">
-  <p style="margin: 0 0 6px 0; font-size: 12px; color: #94a3b8; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Powered by <strong style="color: #64748b; font-weight: 600;">Newsletter Digest</strong></p>
+  <p style="margin: 0 0 6px 0; font-size: 11px; color: #cbd5e1; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Powered by Newsletter Digest</p>
   {% if unsubscribe_url %}
-  <p style="margin: 0; font-size: 12px; color: #cbd5e1; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <p style="margin: 0; font-size: 11px; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
     <a href="{{ unsubscribe_url }}" style="color: #94a3b8; text-decoration: none;">Manage preferences</a>
     &nbsp;&middot;&nbsp;
     <a href="{{ unsubscribe_url }}" style="color: #94a3b8; text-decoration: none;">Unsubscribe</a>

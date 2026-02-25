@@ -126,11 +126,66 @@
             text-decoration: none;
         }
         a.cancel:hover { color: #333; }
+        .banner {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .banner.success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
+        .banner.error   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .manual-add {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 8px;
+        }
+        .manual-add .row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .manual-add input[type="text"],
+        .manual-add input[type="email"] {
+            flex: 1;
+            min-width: 0;
+            padding: 8px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #333;
+        }
+        .manual-add input[type="text"]:focus,
+        .manual-add input[type="email"]:focus {
+            outline: none;
+            border-color: #4285f4;
+            box-shadow: 0 0 0 2px rgba(66,133,244,0.15);
+        }
+        .btn-add-manual {
+            background: #4285f4;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-add-manual:hover { background: #3367d6; }
     </style>
 </head>
 <body>
     <h1>Manage Newsletters</h1>
     <p class="subtitle">Review your subscriptions and add new ones from your inbox.</p>
+
+    {% if success %}
+    <div class="banner success">{{ success }}</div>
+    {% endif %}
+    {% if error %}
+    <div class="banner error">{{ error }}</div>
+    {% endif %}
 
     {# The main save form — inputs use form="main-form" so they work outside this element #}
     <form id="main-form" method="post" action="/newsletters/save"></form>
@@ -182,6 +237,21 @@
         {% else %}
         <p class="empty">No new newsletters detected in your recent inbox.</p>
         {% endif %}
+    </div>
+
+    <hr class="divider">
+
+    {# ── Section 3: Manual Add ── #}
+    <div class="section">
+        <h2>Add Manually</h2>
+        <p class="section-note">Paste a sender email address to add it directly — useful for newsletters that weren't auto-detected.</p>
+        <form method="post" action="/newsletters/add-manual" class="manual-add">
+            <div class="row">
+                <input type="email" name="manual_email" placeholder="sender@example.com" required>
+                <input type="text" name="manual_name" placeholder="Display name (optional)">
+                <button type="submit" class="btn-add-manual">Add</button>
+            </div>
+        </form>
     </div>
 
     <div class="actions">

@@ -167,17 +167,42 @@ _TRANSACTIONAL_SUBJECT_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 
+# Known newsletter platforms — emails from these domains are always treated as
+# potential newsletters and never excluded by the transactional-sender filter.
+NEWSLETTER_DOMAINS = {
+    "news.bloomberg.com",
+    "substack.com",
+    "beehiiv.com",
+    "mailchimp.com",
+    "convertkit.com",
+    "buttondown.email",
+    "revue.email",
+    "ghost.io",
+}
+
 _TRANSACTIONAL_SENDER_PATTERNS = re.compile(
-    r"(noreply|no-reply|support@|billing@|receipts?@|orders?@"
+    r"(support@|billing@|receipts?@|orders?@"
     r"|notifications?@|security@|verify@|mailer-daemon)",
     re.IGNORECASE,
 )
+
+
+def _sender_domain(sender_email: str) -> str:
+    """Extract the domain portion from an email address."""
+    if "@" in sender_email:
+        return sender_email.split("@", 1)[1].lower()
+    return ""
 
 
 def _is_transactional(email: Dict) -> bool:
     """Return True if the email looks like a transactional / one-off message."""
     subject = email.get("subject", "")
     sender = email.get("from", "")
+    sender_email_addr, _ = _parse_sender(sender)
+
+    # Never exclude emails from known newsletter platforms
+    if _sender_domain(sender_email_addr) in NEWSLETTER_DOMAINS:
+        return False
 
     if _TRANSACTIONAL_SUBJECT_PATTERNS.search(subject):
         return True
@@ -196,6 +221,11 @@ def _newsletter_score(email: Dict) -> int:
     """
     score = 0
     body = email.get("body_full", "")
+
+    # Strong signal: sender is a known newsletter platform
+    sender_email_addr, _ = _parse_sender(email.get("from", ""))
+    if _sender_domain(sender_email_addr) in NEWSLETTER_DOMAINS:
+        score += 3
 
     # Strong signal: List-Unsubscribe header (set by mailing-list software)
     if email.get("list_unsubscribe"):

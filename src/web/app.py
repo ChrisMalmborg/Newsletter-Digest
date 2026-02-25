@@ -136,8 +136,10 @@ async def newsletters(request: Request):
         and nl["sender_email"] not in dismissed_emails
     ]
 
+    success = request.query_params.get("success")
+    error = request.query_params.get("error")
     template = jinja_env.get_template("newsletters.html")
-    return template.render(subscriptions=subscriptions, detected=detected)
+    return template.render(subscriptions=subscriptions, detected=detected, success=success, error=error)
 
 
 @app.post("/newsletters/save")
@@ -196,6 +198,35 @@ async def dismiss_newsletter_route(request: Request):
         dismiss_newsletter(sender_email, user_id)
 
     return RedirectResponse("/newsletters", status_code=303)
+
+
+@app.post("/newsletters/add-manual")
+async def add_manual_newsletter(request: Request):
+    """Manually add a newsletter subscription by pasting an email address."""
+    creds_data = request.session.get("google_creds")
+    if not creds_data:
+        return RedirectResponse("/?error=Please+connect+your+Gmail+account+first", status_code=303)
+
+    user_email = request.session.get("user_email")
+    if not user_email:
+        user_email = get_user_email(creds_data)
+        request.session["user_email"] = user_email
+
+    user_id = get_user_id_by_email(user_email) or 1
+
+    form_data = await request.form()
+    manual_email = (form_data.get("manual_email") or "").strip().lower()
+    manual_name = (form_data.get("manual_name") or "").strip()
+
+    if not manual_email or "@" not in manual_email:
+        return RedirectResponse("/newsletters?error=Please+enter+a+valid+email+address", status_code=303)
+
+    if not manual_name:
+        manual_name = manual_email
+
+    add_subscription(sender_email=manual_email, sender_name=manual_name, user_id=user_id)
+    msg = quote(f"Added {manual_email}")
+    return RedirectResponse(f"/newsletters?success={msg}", status_code=303)
 
 
 # ---------------------------------------------------------------------------

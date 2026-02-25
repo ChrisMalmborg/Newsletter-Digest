@@ -1,4 +1,4 @@
-# Newsletter Digest - Project Links
+# TLDRead - Project Links
 
 ## Production App
 - **Live URL:** https://newsletter-digest-production-44a2.up.railway.app

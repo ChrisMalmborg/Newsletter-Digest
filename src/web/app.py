@@ -37,7 +37,7 @@ from src.web.token_storage import save_user_tokens, get_user_id_by_email, get_al
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Newsletter Digest")
+app = FastAPI(title="TLDRead")
 app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
 
 init_db()

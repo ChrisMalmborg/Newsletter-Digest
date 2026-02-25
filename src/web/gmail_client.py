@@ -266,7 +266,7 @@ def detect_newsletters(emails: List[Dict], user_email: Optional[str] = None) -> 
     Bonus: multiple emails from the same sender in the batch (+1 each extra)
 
     Transactional emails (welcome, verify, receipts, etc.) are excluded.
-    Self-emails and Newsletter Digest emails are always excluded.
+    Self-emails and TLDRead emails are always excluded.
     """
     user_email_lower = user_email.lower() if user_email else None
 
@@ -281,7 +281,7 @@ def detect_newsletters(emails: List[Dict], user_email: Optional[str] = None) -> 
         if user_email_lower and sender_email_addr.lower() == user_email_lower:
             continue
 
-        # Skip Newsletter Digest emails (the app's own output)
+        # Skip TLDRead emails (the app's own output)
         subject = email.get("subject", "")
         if re.search(r"newsletter\s+digest", subject, re.IGNORECASE):
             continue

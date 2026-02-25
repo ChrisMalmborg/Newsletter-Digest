@@ -1,4 +1,4 @@
-# Newsletter Digest
+# TLDRead
 
 An AI-powered tool that aggregates newsletters from your Gmail inbox, summarizes them using Claude, identifies themes across multiple newsletters, and delivers a daily digest email.
 

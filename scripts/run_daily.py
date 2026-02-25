@@ -103,7 +103,7 @@ def run(dry_run=False, hours=24, force=False, user=None):
     """
     setup_logging()
     logger.info("=" * 60)
-    logger.info("Newsletter Digest Pipeline — %s", date.today().isoformat())
+    logger.info("TLDRead Pipeline — %s", date.today().isoformat())
     logger.info(
         "Options: dry_run=%s, hours=%d, force=%s, user=%s",
         dry_run, hours, force, user or "(IMAP)",

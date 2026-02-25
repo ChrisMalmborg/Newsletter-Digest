@@ -118,28 +118,43 @@ async def newsletters(request: Request):
 
     user_id = get_user_id_by_email(user_email) or 1
 
-    # Current active subscriptions
+    # Only load subscriptions from DB — detection happens async via /api/detect-newsletters
+    subscriptions = get_active_subscriptions(user_id)
+
+    success = request.query_params.get("success")
+    error = request.query_params.get("error")
+    template = jinja_env.get_template("newsletters.html")
+    return template.render(subscriptions=subscriptions, success=success, error=error)
+
+
+@app.get("/api/detect-newsletters")
+async def detect_newsletters_api(request: Request):
+    """Scan Gmail inbox and return detected newsletters as JSON."""
+    creds_data = request.session.get("google_creds")
+    if not creds_data:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+
+    user_email = request.session.get("user_email")
+    if not user_email:
+        user_email = get_user_email(creds_data)
+        request.session["user_email"] = user_email
+
+    user_id = get_user_id_by_email(user_email) or 1
+
     subscriptions = get_active_subscriptions(user_id)
     subscribed_emails = {sub.sender_email for sub in subscriptions}
-
-    # Dismissed newsletters (hidden from detected list)
     dismissed_emails = get_dismissed_sender_emails(user_id)
 
-    # Detect newsletters from inbox, filtering self-emails and digest subjects
     emails = fetch_recent_emails(creds_data, max_results=100)
     all_detected = detect_newsletters(emails, user_email=user_email)
 
-    # Only show detected newsletters not already subscribed and not dismissed
     detected = [
         nl for nl in all_detected
         if nl["sender_email"] not in subscribed_emails
         and nl["sender_email"] not in dismissed_emails
     ]
 
-    success = request.query_params.get("success")
-    error = request.query_params.get("error")
-    template = jinja_env.get_template("newsletters.html")
-    return template.render(subscriptions=subscriptions, detected=detected, success=success, error=error)
+    return JSONResponse({"detected": detected})
 
 
 @app.post("/newsletters/save")

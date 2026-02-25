@@ -174,6 +174,47 @@
             white-space: nowrap;
         }
         .btn-add-manual:hover { background: #3367d6; }
+        /* Loading skeleton */
+        .skeleton-card {
+            pointer-events: none;
+        }
+        .skeleton-line {
+            background: #e5e7eb;
+            border-radius: 4px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        .skeleton-line.name  { height: 14px; width: 55%; margin-bottom: 6px; }
+        .skeleton-line.email { height: 12px; width: 38%; }
+        .skeleton-box {
+            width: 16px; height: 16px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            flex-shrink: 0;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.45; }
+        }
+        .loading-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 12px;
+        }
+        .spinner {
+            width: 14px; height: 14px;
+            border: 2px solid #d1d5db;
+            border-top-color: #4285f4;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+            flex-shrink: 0;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -215,28 +256,39 @@
     {# ── Section 2: Detected Newsletters ── #}
     <div class="section">
         <h2>Detected in Inbox</h2>
-        {% if detected %}
-        <p class="section-note">Check any you'd like to subscribe to, then save. Dismiss to hide permanently.</p>
-        {% for nl in detected %}
-        <div class="card">
-            <input form="main-form" type="checkbox" name="add_detected" value="{{ nl.sender_email }}">
-            <input form="main-form" type="hidden" name="sender_name_{{ nl.sender_email }}" value="{{ nl.sender_name }}">
-            <div class="info">
-                <div class="sender-name">{{ nl.sender_name }}</div>
-                <div class="sender-email">{{ nl.sender_email }}</div>
-                {% if nl.email_count %}
-                <div class="email-count">{{ nl.email_count }} email{{ "s" if nl.email_count != 1 else "" }} found</div>
-                {% endif %}
+
+        {# Loading state — hidden once JS populates results #}
+        <div id="detected-loading">
+            <div class="loading-header">
+                <div class="spinner"></div>
+                <span>Scanning your inbox…</span>
             </div>
-            <form method="post" action="/newsletters/dismiss">
-                <input type="hidden" name="sender_email" value="{{ nl.sender_email }}">
-                <button type="submit" class="btn-dismiss">Dismiss</button>
-            </form>
+            <p id="detected-long-msg" style="display:none;" class="section-note">Taking longer than usual…</p>
+            <div class="card skeleton-card">
+                <div class="skeleton-box"></div>
+                <div class="info">
+                    <div class="skeleton-line name"></div>
+                    <div class="skeleton-line email"></div>
+                </div>
+            </div>
+            <div class="card skeleton-card">
+                <div class="skeleton-box"></div>
+                <div class="info">
+                    <div class="skeleton-line name" style="width:42%"></div>
+                    <div class="skeleton-line email" style="width:30%"></div>
+                </div>
+            </div>
+            <div class="card skeleton-card">
+                <div class="skeleton-box"></div>
+                <div class="info">
+                    <div class="skeleton-line name" style="width:62%"></div>
+                    <div class="skeleton-line email" style="width:45%"></div>
+                </div>
+            </div>
         </div>
-        {% endfor %}
-        {% else %}
-        <p class="empty">No new newsletters detected in your recent inbox.</p>
-        {% endif %}
+
+        {# Populated by JS #}
+        <div id="detected-container"></div>
     </div>
 
     <hr class="divider">
@@ -258,5 +310,75 @@
         <button form="main-form" type="submit" class="btn-save">Save Changes</button>
         <a class="cancel" href="/dashboard">Cancel</a>
     </div>
+
+    <script>
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        async function loadDetectedNewsletters() {
+            const loading   = document.getElementById('detected-loading');
+            const container = document.getElementById('detected-container');
+            const longMsg   = document.getElementById('detected-long-msg');
+
+            const longTimer = setTimeout(() => { longMsg.style.display = 'block'; }, 10000);
+
+            try {
+                const res = await fetch('/api/detect-newsletters');
+                clearTimeout(longTimer);
+
+                if (!res.ok) throw new Error('scan failed');
+
+                const { detected } = await res.json();
+                loading.style.display = 'none';
+
+                if (!detected || detected.length === 0) {
+                    container.innerHTML = '<p class="empty">No new newsletters detected in your recent inbox.</p>';
+                    return;
+                }
+
+                const note = document.createElement('p');
+                note.className = 'section-note';
+                note.textContent = 'Check any you\u2019d like to subscribe to, then save. Dismiss to hide permanently.';
+                container.appendChild(note);
+
+                detected.forEach(nl => {
+                    const emailStr = escHtml(nl.sender_email);
+                    const nameStr  = escHtml(nl.sender_name);
+                    const count    = nl.email_count;
+                    const countHtml = count
+                        ? `<div class="email-count">${count} email${count !== 1 ? 's' : ''} found</div>`
+                        : '';
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <input form="main-form" type="checkbox" name="add_detected" value="${emailStr}">
+                        <input form="main-form" type="hidden" name="sender_name_${emailStr}" value="${nameStr}">
+                        <div class="info">
+                            <div class="sender-name">${nameStr}</div>
+                            <div class="sender-email">${emailStr}</div>
+                            ${countHtml}
+                        </div>
+                        <form method="post" action="/newsletters/dismiss">
+                            <input type="hidden" name="sender_email" value="${emailStr}">
+                            <button type="submit" class="btn-dismiss">Dismiss</button>
+                        </form>`;
+                    container.appendChild(card);
+                });
+            } catch (_) {
+                clearTimeout(longTimer);
+                loading.style.display = 'none';
+                container.innerHTML = '<p class="empty">Could not scan inbox. <a href="/newsletters">Try again</a>.</p>';
+            }
+        }
+
+        loadDetectedNewsletters();
+    </script>
 </body>
 </html>

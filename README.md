@@ -24,9 +24,11 @@ An AI-powered tool that aggregates newsletters from your Gmail inbox, summarizes
 
 ## Screenshots
 
-> *[Screenshot of digest email]*
+> ### Landing Page
+![TLDRead Landing Page](screenshots/landing-page.png)
 
-> *[Screenshot of web dashboard]*
+> ### Daily Digest Email
+![TLDRead Daily Digest](screenshots/digest-email.png)
 
 ## How It Works
 

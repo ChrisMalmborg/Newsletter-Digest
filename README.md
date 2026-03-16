@@ -1,3 +1,5 @@
+🔗 Live at [tldread.ai](https://tldread.ai)
+
 # TLDRead
 
 An AI-powered tool that aggregates newsletters from your Gmail inbox, summarizes them using Claude, identifies themes across multiple newsletters, and delivers a daily digest email.
@@ -16,18 +18,18 @@ An AI-powered tool that aggregates newsletters from your Gmail inbox, summarizes
 | Component | Technology |
 |-----------|------------|
 | **Backend** | Python, FastAPI |
-| **AI** | Anthropic Claude API (claude-sonnet-4-5-20250929) |
+| **AI** | Anthropic Claude API |
 | **Auth** | Google OAuth 2.0, Gmail API |
-| **Database** | SQLite |
+| **Database** | Postgres |
 | **Deployment** | Railway |
 | **Scheduling** | Cron-job.org |
 
 ## Screenshots
 
-> ### Landing Page
+### Landing Page
 ![TLDRead Landing Page](screenshots/landing-page.png)
 
-> ### Daily Digest Email
+### Daily Digest Email
 ![TLDRead Daily Digest](screenshots/digest-email.png)
 
 ## How It Works
@@ -49,7 +51,7 @@ An AI-powered tool that aggregates newsletters from your Gmail inbox, summarizes
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/newsletter-digest.git
+git clone https://github.com/ChrisMalmborg/newsletter-digest.git
 cd newsletter-digest
 
 # Create and activate a virtual environment

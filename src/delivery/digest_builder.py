@@ -62,6 +62,7 @@ def build_digest(
         top_story=top_story if top_story else None,
         clusters=theme_list,
         contradictions=contradictions,
+        summaries=summaries,
     )
 
     # Build plain-text fallback
@@ -72,6 +73,7 @@ def build_digest(
         top_story=top_story,
         clusters=theme_list,
         contradictions=contradictions,
+        summaries=summaries,
     )
 
     return {"html": html, "text": text, "subject": subject}
@@ -84,6 +86,7 @@ def _build_plain_text(
     top_story: Optional[dict],
     clusters: List[dict],
     contradictions: List[dict],
+    summaries: Optional[List[dict]] = None,
 ) -> str:
     """Generate a plain-text version of the digest."""
     lines = []
@@ -122,6 +125,18 @@ def _build_plain_text(
                 lines.append("   Sources: {}".format(", ".join(cluster["sources"])))
             if cluster.get("read_more_url"):
                 lines.append("   Read more: {}".format(cluster["read_more_url"]))
+
+    if not clusters and summaries:
+        lines.append("")
+        lines.append("TODAY'S NEWSLETTERS")
+        lines.append("-" * 40)
+        for s in summaries:
+            lines.append("")
+            lines.append("{} — {}".format(s.get("sender_name", ""), s.get("subject", "")))
+            if s.get("one_line_summary"):
+                lines.append(s["one_line_summary"])
+            for point in s.get("key_points", []):
+                lines.append("  • {}".format(point))
 
     if contradictions:
         lines.append("")

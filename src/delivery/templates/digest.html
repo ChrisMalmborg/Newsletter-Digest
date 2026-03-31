@@ -108,6 +108,49 @@
 </td></tr>
 {% endif %}
 
+{% if not clusters and summaries %}
+<!-- Individual Summaries (no clusters) -->
+<tr><td style="padding: 28px 40px 0 40px;">
+  <!-- Section header with blue accent bar -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 18px;">
+  <tr>
+    <td style="width: 4px; background-color: #2563eb; border-radius: 2px; font-size: 0; line-height: 0; padding-bottom: 10px; vertical-align: top;">&nbsp;</td>
+    <td style="padding-left: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+      <span style="font-size: 11px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 1.5px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Today's Newsletter{{ "s" if summaries|length != 1 else "" }}</span>
+    </td>
+  </tr>
+  </table>
+
+  {% for s in summaries %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  <tr><td>
+    <p style="margin: 0 0 2px 0; font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ s.sender_name }}</p>
+    <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 700; color: #0f172a; line-height: 1.35; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ s.subject }}</h3>
+    {% if s.one_line_summary %}
+    <p style="margin: 0 0 12px 0; font-size: 14px; line-height: 1.65; color: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ s.one_line_summary }}</p>
+    {% endif %}
+    {% if s.key_points %}
+    <ul style="margin: 0; padding-left: 20px;">
+      {% for point in s.key_points %}
+      <li style="font-size: 13px; line-height: 1.6; color: #475569; margin-bottom: 4px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">{{ point }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </td></tr>
+  </table>
+  {% if not loop.last %}
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  <tr><td style="padding: 18px 0;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr><td style="height: 1px; background-color: #e8eef4; font-size: 0; line-height: 0;">&nbsp;</td></tr>
+    </table>
+  </td></tr>
+  </table>
+  {% endif %}
+  {% endfor %}
+</td></tr>
+{% endif %}
+
 {% if contradictions %}
 <!-- Different Takes -->
 <tr><td style="padding: 28px 40px 0 40px;">

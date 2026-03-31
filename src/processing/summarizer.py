@@ -19,8 +19,8 @@ MAX_RETRIES = 3
 
 def _extract_json(text: str) -> str:
     """Strip markdown code fences if Claude wrapped the JSON in them."""
-    # Match ```json ... ``` or ``` ... ```
-    match = re.search(r"```(?:json)?\s*\n?(.*?)\n?\s*```", text, re.DOTALL)
+    # Match opening fence + optional language tag (any case), then capture content
+    match = re.search(r"```[^\n]*\r?\n(.*?)\r?\n?```", text.strip(), re.DOTALL)
     if match:
         return match.group(1).strip()
     return text.strip()

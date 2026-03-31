@@ -31,20 +31,22 @@ def _build_flow() -> Flow:
     return flow
 
 
-def get_authorization_url() -> str:
-    """Return the Google OAuth consent screen URL."""
+def get_authorization_url() -> tuple[str, str]:
+    """Return (auth_url, code_verifier) for the Google OAuth consent screen."""
     flow = _build_flow()
     auth_url, _ = flow.authorization_url(
         access_type="offline",
         include_granted_scopes="true",
         prompt="consent",
     )
-    return auth_url
+    return auth_url, flow.code_verifier
 
 
-def exchange_code(code: str) -> dict:
+def exchange_code(code: str, code_verifier: Optional[str] = None) -> dict:
     """Exchange an authorization code for credentials. Returns serialized creds."""
     flow = _build_flow()
+    if code_verifier:
+        flow.code_verifier = code_verifier
     flow.fetch_token(code=code)
     creds = flow.credentials
     return {

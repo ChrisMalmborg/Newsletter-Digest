@@ -77,11 +77,12 @@ async def landing(request: Request):
 
 
 @app.get("/auth/google")
-async def auth_google():
+async def auth_google(request: Request):
     """Redirect the user to the Google OAuth consent screen."""
     if not GOOGLE_CLIENT_ID:
         return RedirectResponse("/?error=Google+OAuth+credentials+not+configured")
-    url = get_authorization_url()
+    url, code_verifier = get_authorization_url()
+    request.session["code_verifier"] = code_verifier
     return RedirectResponse(url)
 
 
@@ -96,8 +97,14 @@ async def auth_callback(request: Request):
     if not code:
         return RedirectResponse("/?error=No+authorization+code+received")
 
-    creds_data = exchange_code(code)
-    user_email = get_user_email(creds_data)
+    try:
+        code_verifier = request.session.get("code_verifier")
+        creds_data = exchange_code(code, code_verifier=code_verifier)
+        user_email = get_user_email(creds_data)
+    except Exception as e:
+        logger.error("OAuth token exchange failed: %s", e)
+        return RedirectResponse("/?error=Authentication+failed.+Please+try+again.")
+
     save_user_tokens(user_email, creds_data)
     request.session["google_creds"] = creds_data
     request.session["user_email"] = user_email
